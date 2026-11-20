@@ -32,7 +32,7 @@
     <!-- TOP HEADER BAR -->
     <header class="bg-slate-800 border-b border-slate-700 px-4 py-2 flex justify-between items-center shrink-0">
         <div class="flex items-center space-x-3">
-            <h1 class="text-lg font-bold truncate" x-text="gameMode"></h1>
+            <h1 class="text-lg font-bold truncate" x-text="isX01GameMode() ? gameMode + ' - ' + startingMode : gameMode"></h1>
         </div>
         <div class="flex space-x-2">
             <button @click="resetMatch()" class="bg-slate-700 hover:bg-slate-600 text-xs px-3 py-1.5 rounded font-semibold">New Match</button>
@@ -59,6 +59,16 @@
                 <option value="3-Way Cricket">3-Way Cricket</option>
                 <option value="BowTie">BowTie</option>
             </select>
+
+            <template x-if="isX01GameMode()">
+                <div>
+                    <label class="text-sm text-slate-400 mb-1">Starting Mode</label>
+                    <select x-model="startingMode" class="bg-slate-800 border border-slate-700 rounded p-3 mb-4 text-white font-bold w-full">
+                        <option value="Straight-in">Straight-in</option>
+                        <option value="Double-in">Double-in</option>
+                    </select>
+                </div>
+            </template>
 
             <template x-if="isX01GameMode() || isBowTieGameMode()">
                 <div>
@@ -113,7 +123,7 @@
             </template>
 
             <!-- DYNAMIC GAME BOARD / STATS DISPLAY -->
-            <div class="game-board-area flex-1 p-4 flex flex-col justify-center items-center overflow-y-auto min-h-0">
+            <div class="game-board-area flex-1 p-2 sm:p-3 flex flex-col justify-center items-center overflow-y-auto min-h-0">
                 
                 <!-- X01 Checkout Guide -->
                 <template x-if="isX01GameMode()">
@@ -129,7 +139,7 @@
 
                 <!-- Cricket Matrix Board -->
                 <template x-if="isCricketGameMode()">
-                    <div class="w-full max-w-md bg-slate-800 rounded-xl overflow-hidden border border-slate-700 text-base mb-2">
+                    <div class="w-full max-w-md bg-slate-800 rounded-xl overflow-hidden border border-slate-700 text-base mb-1">
                         <div class="grid text-center font-bold text-[22px] uppercase tracking-wide bg-slate-700 p-2" :style="'grid-template-columns: repeat(' + players.length + ', minmax(0, 1fr)) 1.2fr'">
                             <template x-for="(player, index) in players" :key="index">
                                 <div class="px-1"><span x-text="player.name"></span></div>
@@ -137,15 +147,18 @@
                             <div class="text-center">Target</div>
                         </div>
                         <template x-for="target in [20, 19, 18, 17, 16, 15, 'B']">
-                            <div class="grid px-2 py-0.5 text-center border-t border-slate-700 items-center font-mono font-bold gap-1" :style="'grid-template-columns: repeat(' + players.length + ', minmax(0, 1fr)) 1.2fr'">
+                            <div class="grid px-2 py-0 text-center border-t border-slate-700 items-center font-mono font-bold gap-1" :style="'grid-template-columns: repeat(' + players.length + ', minmax(0, 1fr)) 1.2fr'">
                                 <template x-for="(player, index) in players" :key="index">
                                     <div class="min-h-[30px] flex items-center justify-center text-blue-400 text-[22px]">
                                         <span x-text="renderMarks(player.marks[target])"></span>
                                     </div>
                                 </template>
-                                <div class="flex items-center justify-center gap-1 text-slate-200 bg-slate-900 py-0.5 rounded w-full mx-auto text-center">
+                                <div class="grid grid-cols-[28px_40px_28px] items-center justify-items-center justify-end gap-1 sm:gap-2 text-slate-200 bg-slate-900 py-0.5 rounded w-full ml-auto text-center">
                                     <template x-if="target !== 'B'">
                                         <button @click="hitCricket(activePlayer, target, 3)" class="w-7 h-7 bg-slate-700 hover:bg-slate-600 rounded text-[24px]">T</button>
+                                    </template>
+                                    <template x-if="target === 'B'">
+                                        <div class="w-7 h-7"></div>
                                     </template>
                                     <button @click="hitCricket(activePlayer, target, 1)" class="w-10 h-8 bg-slate-900 hover:bg-slate-700 rounded text-[26px]" x-text="target"></button>
                                     <button @click="hitCricket(activePlayer, target, 2)" class="w-7 h-7 bg-slate-700 hover:bg-slate-600 rounded text-[24px]">D</button>
@@ -153,6 +166,11 @@
                             </div>
                         </template>
                     </div>
+                    <div
+                        x-show="cricketHitLimitMessage"
+                        class="w-full max-w-md text-center text-red-400 font-bold text-sm mt-1"
+                        x-text="cricketHitLimitMessage"
+                    ></div>
                 </template>
 
                 <template x-if="isBowTieGameMode()">
@@ -279,9 +297,9 @@
 
                     <!-- Cricket Keypad -->
                     <template x-if="isCricketGameMode()">
-                        <div class="mb-2 grid grid-cols-2 gap-2">
-                            <button @click="undo()" class="bg-yellow-600 hover:bg-yellow-500 font-bold py-3 rounded-lg text-sm">UNDO</button>
-                            <button @click="submitCricketTurn()" class="bg-green-600 hover:bg-green-500 font-bold py-3 rounded-lg text-sm">ENTER</button>
+                        <div class="mb-1 grid grid-cols-2 gap-2">
+                            <button @click="undo()" class="bg-yellow-600 hover:bg-yellow-500 font-bold py-2 rounded-lg text-sm">UNDO</button>
+                            <button @click="submitCricketTurn()" class="bg-green-600 hover:bg-green-500 font-bold py-2 rounded-lg text-sm">ENTER</button>
                         </div>
                     </template>
 
@@ -306,6 +324,7 @@
             return {
                 screen: 'menu',
                 gameMode: '501',
+                startingMode: 'Straight-in',
                 matchType: 'Single Leg',
                 playerCount: 2,
                 activePlayer: 0,
@@ -313,6 +332,7 @@
                 bowTieRoundIndex: 0,
                 bowTieDarts: [],
                 bowTieRoundInput: '',
+                cricketHitLimitMessage: '',
                 players: [
                     { name: 'P1', score: 501, history: [], cricketScore: 0, marks: {20:0, 19:0, 18:0, 17:0, 16:0, 15:0, 'B':0}, turnDarts: 0 },
                     { name: 'P2', score: 501, history: [], cricketScore: 0, marks: {20:0, 19:0, 18:0, 17:0, 16:0, 15:0, 'B':0}, turnDarts: 0 }
@@ -324,6 +344,7 @@
                     this.undoStack.push({
                         screen: this.screen,
                         gameMode: this.gameMode,
+                        startingMode: this.startingMode,
                         playerCount: this.playerCount,
                         activePlayer: this.activePlayer,
                         currentTurnScore: this.currentTurnScore,
@@ -339,6 +360,7 @@
                     if (!snapshot) return;
                     this.screen = snapshot.screen;
                     this.gameMode = snapshot.gameMode;
+                    this.startingMode = snapshot.startingMode || 'Straight-in';
                     this.playerCount = snapshot.playerCount;
                     this.activePlayer = snapshot.activePlayer;
                     this.currentTurnScore = snapshot.currentTurnScore;
@@ -578,6 +600,7 @@
                     return {
                         screen: this.screen,
                         gameMode: this.gameMode,
+                        startingMode: this.startingMode,
                         playerCount: this.playerCount,
                         activePlayer: this.activePlayer,
                         currentTurnScore: this.currentTurnScore,
@@ -831,6 +854,7 @@
 
                     const previous = this.undoStack.pop();
                     this.restoreUndoState(previous);
+                    this.cricketHitLimitMessage = '';
                     if (this.isCricketGameMode()) {
                         this.recalcCricketScores();
                     }
@@ -1040,8 +1064,12 @@
                 hitCricket(playerIndex, target, multiplier) {
                     const p = this.players[playerIndex];
                     if (!p) return;
-                    if ((p.turnDarts || 0) >= 3) return;
+                    if ((p.turnDarts || 0) >= 3) {
+                        this.cricketHitLimitMessage = '3 dart hits recorded, click on UNDO or ENTER to continue';
+                        return;
+                    }
 
+                    this.cricketHitLimitMessage = '';
                     this.saveUndoState();
                     p.marks[target] = (p.marks[target] || 0) + multiplier;
                     p.turnDarts = (p.turnDarts || 0) + 1;
@@ -1054,6 +1082,7 @@
 
                 submitCricketTurn() {
                     this.saveUndoState();
+                    this.cricketHitLimitMessage = '';
                     const current = this.players[this.activePlayer];
                     if (current) current.turnDarts = 0;
                     this.activePlayer = (this.activePlayer + 1) % this.players.length;
