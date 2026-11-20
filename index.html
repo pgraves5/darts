@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>DartConnect Emulator</title>
+    <title>Dart Games</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <style>
@@ -45,7 +45,7 @@
 
         <!-- 1. SETUP / MENU SCREEN -->
         <div x-show="screen === 'menu'" class="mobile-menu absolute inset-0 bg-slate-900 z-20 p-6 flex flex-col justify-center max-w-md mx-auto w-full overflow-y-auto">
-            <h2 class="text-2xl font-black mb-6 text-center text-red-500">DARTCONNECT EMULATOR</h2>
+            <h2 class="text-2xl font-black mb-6 text-center text-red-500">DART GAMES</h2>
             
             <label class="text-sm text-slate-400 mb-1">Game Mode</label>
             <select x-model="gameMode" @change="handleGameModeChange()" class="bg-slate-800 border border-slate-700 rounded p-3 mb-4 text-white font-bold">
@@ -123,14 +123,14 @@
             </template>
 
             <!-- DYNAMIC GAME BOARD / STATS DISPLAY -->
-            <div class="game-board-area flex-1 p-2 sm:p-3 flex flex-col justify-center items-center overflow-y-auto min-h-0">
+            <div class="game-board-area flex-1 p-1 sm:p-2 flex flex-col justify-start items-center overflow-y-auto min-h-0">
                 
                 <!-- X01 Checkout Guide -->
                 <template x-if="isX01GameMode()">
-                    <div class="text-center mb-4">
-                        <div class="text-xs text-slate-400 uppercase tracking-widest mb-1">Checkout Suggestion</div>
+                    <div class="text-center mb-1">
+                        <div class="text-xs text-slate-400 uppercase tracking-widest mb-0">Checkout Suggestion</div>
                         <div class="text-xl font-bold text-yellow-400" x-text="checkoutInfo().summary"></div>
-                        <div class="mt-2 text-sm space-y-1 text-slate-200">
+                        <div class="mt-0.5 text-sm space-y-0 text-slate-200">
                             <div x-show="checkoutInfo().twoDart" x-text="'2 Dart: ' + checkoutInfo().twoDart"></div>
                             <div x-show="checkoutInfo().threeDart" x-text="'3 Dart: ' + checkoutInfo().threeDart"></div>
                         </div>
@@ -139,7 +139,7 @@
 
                 <!-- Cricket Matrix Board -->
                 <template x-if="isCricketGameMode()">
-                    <div class="w-full max-w-md bg-slate-800 rounded-xl overflow-hidden border border-slate-700 text-base mb-1">
+                    <div class="w-full max-w-md bg-slate-800 rounded-xl overflow-hidden border border-slate-700 text-base mb-0">
                         <div class="grid text-center font-bold text-[22px] uppercase tracking-wide bg-slate-700 p-2" :style="'grid-template-columns: repeat(' + players.length + ', minmax(0, 1fr)) 1.2fr'">
                             <template x-for="(player, index) in players" :key="index">
                                 <div class="px-1"><span x-text="player.name"></span></div>
@@ -166,11 +166,6 @@
                             </div>
                         </template>
                     </div>
-                    <div
-                        x-show="cricketHitLimitMessage"
-                        class="w-full max-w-md text-center text-red-400 font-bold text-sm mt-1"
-                        x-text="cricketHitLimitMessage"
-                    ></div>
                 </template>
 
                 <template x-if="isBowTieGameMode()">
@@ -239,10 +234,10 @@
 
                 <!-- Current Turn Input Display -->
                 <template x-if="!isCricketGameMode() && !isBowTieGameMode()">
-                    <div class="bg-slate-800/60 border border-slate-700 rounded-2xl p-2 sm:p-4 w-full max-w-sm text-center shadow-inner">
-                        <div class="text-xs text-slate-400 uppercase mb-1">Current Turn Score</div>
-                        <div class="text-5xl font-mono font-black text-red-500 tracking-widest h-14" x-text="currentTurnScore || '0'"></div>
-                        <div class="mt-3 grid grid-cols-2 gap-2 text-left">
+                    <div class="bg-slate-800/60 border border-slate-700 rounded-xl p-1.5 sm:p-2 w-full max-w-sm text-center shadow-inner">
+                        <div class="text-xs text-slate-400 uppercase mb-0">Current Turn Score</div>
+                        <div class="text-4xl sm:text-5xl font-mono font-black text-red-500 tracking-widest h-10 sm:h-12" x-text="currentTurnScore || '0'"></div>
+                        <div class="mt-1 grid grid-cols-2 gap-1 text-left">
                             <div class="bg-slate-900/60 rounded-lg p-2">
                                 <div class="text-[10px] uppercase tracking-wider text-slate-400">Turn Total</div>
                                 <div class="font-mono font-bold text-red-400" x-text="turnTotalPreview()"></div>
@@ -297,14 +292,21 @@
 
                     <!-- Cricket Keypad -->
                     <template x-if="isCricketGameMode()">
-                        <div class="mb-1 grid grid-cols-2 gap-2">
-                            <button @click="undo()" class="bg-yellow-600 hover:bg-yellow-500 font-bold py-2 rounded-lg text-sm">UNDO</button>
-                            <button @click="submitCricketTurn()" class="bg-green-600 hover:bg-green-500 font-bold py-2 rounded-lg text-sm">ENTER</button>
+                        <div class="mb-1">
+                            <div
+                                x-show="cricketHitLimitMessage"
+                                class="w-full text-center text-red-500 font-bold text-xs mb-1"
+                                x-text="cricketHitLimitMessage"
+                            ></div>
+                            <div class="grid grid-cols-2 gap-2">
+                                <button @click="undo()" class="bg-yellow-600 hover:bg-yellow-500 font-bold py-2 rounded-lg text-sm">UNDO</button>
+                                <button @click="submitCricketTurn()" class="bg-green-600 hover:bg-green-500 font-bold py-2 rounded-lg text-sm">ENTER</button>
+                            </div>
                         </div>
                     </template>
 
                     <!-- Bottom Utility Bar -->
-                    <div class="flex justify-between items-center mt-2 pt-2 border-t border-slate-700 text-xs">
+                    <div class="flex justify-between items-center mt-1 pt-1 border-t border-slate-700 text-xs">
                         <template x-if="!isCricketGameMode() && !isBowTieGameMode()">
                             <button @click="undo()" class="text-slate-400 hover:text-white flex items-center space-x-1">
                                 <span>↩ Undo Last Dart/Turn</span>
@@ -554,6 +556,7 @@
                 },
 
                 setupPlayerNames() {
+                    this.cricketHitLimitMessage = '';
                     const count = this.isThreeWayCricketGameMode()
                         ? 3
                         : (this.isStandardCricketGameMode()
