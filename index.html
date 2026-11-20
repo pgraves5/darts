@@ -2,17 +2,32 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>DartConnect Emulator</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <style>
-        /* Prevent pull-to-refresh and text selection on iPad */
-        body {overscroll-behavior-y: none; -webkit-user-select: none; user-select: none;}
-        .keypad-btn { active:scale-95 transition-transform; }
+        /* Responsive viewport behavior */
+        body { overscroll-behavior-y: none; -webkit-user-select: none; user-select: none; min-height: 100vh; min-height: 100dvh; }
+        button, input, select { touch-action: manipulation; }
+        .keypad-btn { transition: transform 90ms ease; }
+        .keypad-btn:active { transform: scale(0.95); }
+        @media (max-width: 640px) {
+            .game-board-area { padding: 0.5rem !important; }
+            .compact-keypad { padding: 0.5rem !important; }
+            .compact-keypad .keypad-btn { padding-top: 0.375rem !important; padding-bottom: 0.375rem !important; }
+            .mobile-menu { padding: 1rem !important; justify-content: flex-start !important; }
+            .mobile-menu h2 { margin-bottom: 0.75rem !important; }
+            .mobile-menu select, .mobile-menu input { margin-bottom: 0.5rem !important; }
+        }
+        @media (max-height: 700px) {
+            .game-board-area { padding-top: 0.25rem !important; padding-bottom: 0.25rem !important; }
+            .compact-keypad { padding-top: 0.375rem !important; padding-bottom: 0.375rem !important; }
+            .compact-keypad .keypad-btn { padding-top: 0.25rem !important; padding-bottom: 0.25rem !important; }
+        }
     </style>
 </head>
-<body class="bg-slate-900 text-white font-sans h-screen flex flex-col overflow-hidden" x-data="dartApp()" x-init="setupPlayerNames()">
+<body class="bg-slate-900 text-white font-sans h-screen h-[100dvh] flex flex-col overflow-hidden" x-data="dartApp()" x-init="setupPlayerNames()">
 
     <!-- TOP HEADER BAR -->
     <header class="bg-slate-800 border-b border-slate-700 px-4 py-2 flex justify-between items-center shrink-0">
@@ -29,11 +44,11 @@
     <main class="flex-1 flex flex-col overflow-hidden relative">
 
         <!-- 1. SETUP / MENU SCREEN -->
-        <div x-show="screen === 'menu'" class="absolute inset-0 bg-slate-900 z-20 p-6 flex flex-col justify-center max-w-md mx-auto">
+        <div x-show="screen === 'menu'" class="mobile-menu absolute inset-0 bg-slate-900 z-20 p-6 flex flex-col justify-center max-w-md mx-auto w-full overflow-y-auto">
             <h2 class="text-2xl font-black mb-6 text-center text-red-500">DARTCONNECT EMULATOR</h2>
             
             <label class="text-sm text-slate-400 mb-1">Game Mode</label>
-            <select x-model="gameMode" @change="setupPlayerNames()" class="bg-slate-800 border border-slate-700 rounded p-3 mb-4 text-white font-bold">
+            <select x-model="gameMode" @change="handleGameModeChange()" class="bg-slate-800 border border-slate-700 rounded p-3 mb-4 text-white font-bold">
                 <option value="601">601</option>
                 <option value="501">501</option>
                 <option value="401">401</option>
@@ -83,11 +98,14 @@
             <template x-if="!isBowTieGameMode()">
                 <div :class="'grid ' + getPlayerGridClasses() + ' bg-slate-800 border-b border-slate-700 text-center shrink-0'" class="grid grid-cols-2">
                     <template x-for="(player, index) in players" :key="index">
-                        <div :class="activePlayer === index ? 'bg-slate-700/80 border-b-4 border-red-500' : 'opacity-70'" class="p-3 transition-all border-r border-slate-700 last:border-r-0">
+                        <div
+                            :class="(activePlayer === index ? 'bg-slate-700/80 border-b-4 border-red-500' : 'opacity-70') + (isX01GameMode() ? ' p-1.5' : (isCricketGameMode() ? ' p-2.5' : ' p-3'))"
+                            class="transition-all border-r border-slate-700 last:border-r-0"
+                        >
                             <div class="text-xs font-bold uppercase tracking-wider text-slate-400 truncate" x-text="player.name"></div>
-                            <div :class="activePlayer === index ? 'font-black' : 'font-normal'" class="text-4xl tracking-tighter my-1" x-text="isX01GameMode() ? player.score : player.cricketScore"></div>
+                            <div :class="(activePlayer === index ? 'font-black' : 'font-normal') + (isX01GameMode() ? ' text-[1.8rem] my-0.5' : (isCricketGameMode() ? ' text-[2rem] my-0.5' : ' text-4xl my-1'))" x-text="isX01GameMode() ? player.score : player.cricketScore"></div>
                             <template x-if="isX01GameMode()">
-                                <div class="text-xs text-slate-300">Avg: <span class="font-bold" x-text="getPlayerAvg(index)"></span></div>
+                                <div class="text-[10px] text-slate-300">Avg: <span class="font-bold" x-text="getPlayerAvg(index)"></span></div>
                             </template>
                         </div>
                     </template>
@@ -95,7 +113,7 @@
             </template>
 
             <!-- DYNAMIC GAME BOARD / STATS DISPLAY -->
-            <div class="flex-1 p-4 flex flex-col justify-center items-center overflow-y-auto">
+            <div class="game-board-area flex-1 p-4 flex flex-col justify-center items-center overflow-y-auto min-h-0">
                 
                 <!-- X01 Checkout Guide -->
                 <template x-if="isX01GameMode()">
@@ -138,13 +156,13 @@
                 </template>
 
                 <template x-if="isBowTieGameMode()">
-                    <div class="w-full max-w-md bg-slate-800 rounded-xl border border-slate-700 p-3 text-sm mb-2">
+                    <div class="w-full max-w-lg bg-slate-800 rounded-xl border border-slate-700 p-2 sm:p-3 text-sm mb-2 mx-auto">
                         <div class="mt-1 text-base leading-5 text-slate-300 flex items-center gap-3 whitespace-nowrap">
                             <span>Active player: <span class="text-red-500 font-black" x-text="players[activePlayer].name"></span></span>
                             <span>Target Round: <span class="text-red-500 font-black" x-text="getCurrentBowTieRound().label"></span></span>
                         </div>
 
-                        <div class="mt-2 grid grid-cols-[90px_minmax(0,1fr)] gap-2 items-start">
+                        <div class="mt-2 grid grid-cols-[84px_minmax(0,1fr)] sm:grid-cols-[90px_minmax(0,1fr)] gap-2 items-start">
                             <div class="space-y-1.5 rounded-lg border border-slate-700 bg-slate-900/50 p-1.5">
                                 <div class="px-1 text-[9px] uppercase tracking-[0.18em] text-slate-400">Round targets</div>
                                 <template x-for="(target, index) in [
@@ -203,7 +221,7 @@
 
                 <!-- Current Turn Input Display -->
                 <template x-if="!isCricketGameMode() && !isBowTieGameMode()">
-                    <div class="bg-slate-800/60 border border-slate-700 rounded-2xl p-4 w-full max-w-sm text-center shadow-inner">
+                    <div class="bg-slate-800/60 border border-slate-700 rounded-2xl p-2 sm:p-4 w-full max-w-sm text-center shadow-inner">
                         <div class="text-xs text-slate-400 uppercase mb-1">Current Turn Score</div>
                         <div class="text-5xl font-mono font-black text-red-500 tracking-widest h-14" x-text="currentTurnScore || '0'"></div>
                         <div class="mt-3 grid grid-cols-2 gap-2 text-left">
@@ -221,7 +239,7 @@
             </div>
 
             <!-- KEYPAD CONTROLS -->
-            <div class="bg-slate-800 border-t border-slate-700 p-3 shrink-0">
+            <div class="compact-keypad bg-slate-800 border-t border-slate-700 p-3 shrink-0">
                 <div class="max-w-md mx-auto">
                     
                     <!-- X01 Numeric Keypad -->
@@ -296,8 +314,8 @@
                 bowTieDarts: [],
                 bowTieRoundInput: '',
                 players: [
-                    { name: 'P0', score: 501, history: [], cricketScore: 0, marks: {20:0, 19:0, 18:0, 17:0, 16:0, 15:0, 'B':0}, turnDarts: 0 },
-                    { name: 'P1', score: 501, history: [], cricketScore: 0, marks: {20:0, 19:0, 18:0, 17:0, 16:0, 15:0, 'B':0}, turnDarts: 0 }
+                    { name: 'P1', score: 501, history: [], cricketScore: 0, marks: {20:0, 19:0, 18:0, 17:0, 16:0, 15:0, 'B':0}, turnDarts: 0 },
+                    { name: 'P2', score: 501, history: [], cricketScore: 0, marks: {20:0, 19:0, 18:0, 17:0, 16:0, 15:0, 'B':0}, turnDarts: 0 }
                 ],
                 lastTurn: null,
                 undoStack: [],
@@ -500,6 +518,15 @@
                     this.players[index].name = nextValue;
                 },
 
+                handleGameModeChange() {
+                    if (['201', '101'].includes(String(this.gameMode))) {
+                        this.playerCount = 1;
+                    } else {
+                        this.playerCount = 2;
+                    }
+                    this.setupPlayerNames();
+                },
+
                 getStartingScore() {
                     return this.isX01GameMode() ? Number(this.gameMode) : 0;
                 },
@@ -512,9 +539,10 @@
                             : (this.isBowTieGameMode()
                                 ? Math.min(this.getMaxPlayerCount(), Math.max(1, Number(this.playerCount) || 2))
                                 : (this.isX01GameMode() ? Math.min(this.getMaxPlayerCount(), Math.max(1, Number(this.playerCount) || 2)) : 2)));
-                    const existing = this.players.slice(0, count).map((player) => String(player.name || '').slice(0, this.getPlayerNameMaxLength()).toUpperCase());
+                    const existingNames = this.players.slice(0, count).map((player) => String(player.name || '').trim().toUpperCase());
+                    const hasCustomNames = existingNames.every((name) => name && !/^P(?:[1-9]|10|11|12|13|14|15)$/.test(name));
                     this.players = Array.from({ length: count }, (_, index) => ({
-                        name: existing[index] || `P${index}`,
+                        name: hasCustomNames ? (existingNames[index] || `P${index + 1}`).slice(0, this.getPlayerNameMaxLength()).toUpperCase() : `P${index + 1}`,
                         score: this.isX01GameMode() ? Number(this.gameMode) : 0,
                         history: [],
                         cricketScore: 0,
@@ -529,7 +557,7 @@
                     this.setupPlayerNames();
                     this.players = this.players.map((player, index) => ({
                         ...player,
-                        name: player.name || `P${index}`,
+                        name: player.name || `P${index + 1}`,
                         score: startingScore,
                         history: [],
                         cricketScore: 0,
