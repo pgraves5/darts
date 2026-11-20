@@ -1,0 +1,1037 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>DartConnect Emulator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <style>
+        /* Prevent pull-to-refresh and text selection on iPad */
+        body {overscroll-behavior-y: none; -webkit-user-select: none; user-select: none;}
+        .keypad-btn { active:scale-95 transition-transform; }
+    </style>
+</head>
+<body class="bg-slate-900 text-white font-sans h-screen flex flex-col overflow-hidden" x-data="dartApp()" x-init="setupPlayerNames()">
+
+    <!-- TOP HEADER BAR -->
+    <header class="bg-slate-800 border-b border-slate-700 px-4 py-2 flex justify-between items-center shrink-0">
+        <div class="flex items-center space-x-3">
+            <h1 class="text-lg font-bold truncate" x-text="gameMode"></h1>
+        </div>
+        <div class="flex space-x-2">
+            <button @click="resetMatch()" class="bg-slate-700 hover:bg-slate-600 text-xs px-3 py-1.5 rounded font-semibold">New Match</button>
+            <button @click="screen = 'menu'" class="bg-blue-600 hover:bg-blue-500 text-xs px-3 py-1.5 rounded font-semibold">Menu</button>
+        </div>
+    </header>
+
+    <!-- MAIN VIEW CONTAINER -->
+    <main class="flex-1 flex flex-col overflow-hidden relative">
+
+        <!-- 1. SETUP / MENU SCREEN -->
+        <div x-show="screen === 'menu'" class="absolute inset-0 bg-slate-900 z-20 p-6 flex flex-col justify-center max-w-md mx-auto">
+            <h2 class="text-2xl font-black mb-6 text-center text-red-500">DARTCONNECT EMULATOR</h2>
+            
+            <label class="text-sm text-slate-400 mb-1">Game Mode</label>
+            <select x-model="gameMode" @change="setupPlayerNames()" class="bg-slate-800 border border-slate-700 rounded p-3 mb-4 text-white font-bold">
+                <option value="601">601</option>
+                <option value="501">501</option>
+                <option value="401">401</option>
+                <option value="301">301</option>
+                <option value="201">201</option>
+                <option value="101">101</option>
+                <option value="Cricket">Standard Cricket</option>
+                <option value="3-Way Cricket">3-Way Cricket</option>
+                <option value="BowTie">BowTie</option>
+            </select>
+
+            <template x-if="isX01GameMode() || isBowTieGameMode()">
+                <div>
+                    <label class="text-sm text-slate-400 mb-1">Players</label>
+                    <select x-model="playerCount" @change="setupPlayerNames()" class="bg-slate-800 border border-slate-700 rounded p-3 mb-4 text-white font-bold w-full">
+                        <template x-for="n in getPlayerCountOptions()" :key="n">
+                            <option :value="n" x-text="n + ' Player' + (n === 1 ? '' : 's')"></option>
+                        </template>
+                    </select>
+                </div>
+            </template>
+
+            <template x-if="isX01GameMode() || isBowTieGameMode()">
+                <div :class="getPlayerNameSetupGridClasses()" class="grid gap-3 mb-4">
+                    <template x-for="(slot, index) in getPlayerSlots()" :key="index">
+                        <div>
+                            <label class="text-xs text-slate-400 mb-1 block" x-text="'Player ' + (index + 1) + ' Name'">Player Name</label>
+                            <input
+                                type="text"
+                                :maxlength="getPlayerNameMaxLength()"
+                                :value="players[index]?.name || ''"
+                                @input="setPlayerName(index, $event.target.value)"
+                                class="bg-slate-800 border border-slate-700 rounded p-2 text-white font-bold w-full uppercase"
+                            >
+                        </div>
+                    </template>
+                </div>
+            </template>
+
+            <button @click="startMatch()" class="w-full bg-red-600 hover:bg-red-500 font-black py-4 rounded-xl text-lg shadow-lg tracking-wide">START MATCH</button>
+        </div>
+
+        <!-- 2. LIVE SCORING INTERFACE -->
+        <div x-show="screen === 'scoring'" class="flex-1 flex flex-col h-full overflow-hidden">
+            
+            <!-- SCOREBOARD HEADER -->
+            <template x-if="!isBowTieGameMode()">
+                <div :class="'grid ' + getPlayerGridClasses() + ' bg-slate-800 border-b border-slate-700 text-center shrink-0'" class="grid grid-cols-2">
+                    <template x-for="(player, index) in players" :key="index">
+                        <div :class="activePlayer === index ? 'bg-slate-700/80 border-b-4 border-red-500' : 'opacity-70'" class="p-3 transition-all border-r border-slate-700 last:border-r-0">
+                            <div class="text-xs font-bold uppercase tracking-wider text-slate-400 truncate" x-text="player.name"></div>
+                            <div :class="activePlayer === index ? 'font-black' : 'font-normal'" class="text-4xl tracking-tighter my-1" x-text="isX01GameMode() ? player.score : player.cricketScore"></div>
+                            <template x-if="isX01GameMode()">
+                                <div class="text-xs text-slate-300">Avg: <span class="font-bold" x-text="getPlayerAvg(index)"></span></div>
+                            </template>
+                        </div>
+                    </template>
+                </div>
+            </template>
+
+            <!-- DYNAMIC GAME BOARD / STATS DISPLAY -->
+            <div class="flex-1 p-4 flex flex-col justify-center items-center overflow-y-auto">
+                
+                <!-- X01 Checkout Guide -->
+                <template x-if="isX01GameMode()">
+                    <div class="text-center mb-4">
+                        <div class="text-xs text-slate-400 uppercase tracking-widest mb-1">Checkout Suggestion</div>
+                        <div class="text-xl font-bold text-yellow-400" x-text="checkoutInfo().summary"></div>
+                        <div class="mt-2 text-sm space-y-1 text-slate-200">
+                            <div x-show="checkoutInfo().twoDart" x-text="'2 Dart: ' + checkoutInfo().twoDart"></div>
+                            <div x-show="checkoutInfo().threeDart" x-text="'3 Dart: ' + checkoutInfo().threeDart"></div>
+                        </div>
+                    </div>
+                </template>
+
+                <!-- Cricket Matrix Board -->
+                <template x-if="isCricketGameMode()">
+                    <div class="w-full max-w-md bg-slate-800 rounded-xl overflow-hidden border border-slate-700 text-sm mb-2">
+                        <div class="grid text-center font-bold text-[10px] uppercase tracking-wide bg-slate-700 p-2" :style="'grid-template-columns: repeat(' + players.length + ', minmax(0, 1fr)) 1.2fr'">
+                            <template x-for="(player, index) in players" :key="index">
+                                <div class="px-1"><span x-text="player.name"></span></div>
+                            </template>
+                            <div>Target</div>
+                        </div>
+                        <template x-for="target in [20, 19, 18, 17, 16, 15, 'B']">
+                            <div class="grid px-2 py-0.5 text-center border-t border-slate-700 items-center font-mono font-bold gap-1" :style="'grid-template-columns: repeat(' + players.length + ', minmax(0, 1fr)) 1.2fr; transform: scale(0.7); transform-origin: center;'">
+                                <template x-for="(player, index) in players" :key="index">
+                                    <div class="min-h-[24px] flex items-center justify-center text-blue-400">
+                                        <span x-text="renderMarks(player.marks[target])"></span>
+                                    </div>
+                                </template>
+                                <div class="flex items-center justify-center gap-1 text-slate-200 bg-slate-900 py-0.5 rounded">
+                                    <template x-if="target !== 'B'">
+                                        <button @click="hitCricket(activePlayer, target, 3)" class="w-5 h-5 bg-slate-700 hover:bg-slate-600 rounded text-[12px]">T</button>
+                                    </template>
+                                    <button @click="hitCricket(activePlayer, target, 1)" class="w-8 h-6 bg-slate-900 hover:bg-slate-700 rounded text-[14px]" x-text="target"></button>
+                                    <button @click="hitCricket(activePlayer, target, 2)" class="w-5 h-5 bg-slate-700 hover:bg-slate-600 rounded text-[12px]">D</button>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </template>
+
+                <template x-if="isBowTieGameMode()">
+                    <div class="w-full max-w-md bg-slate-800 rounded-xl border border-slate-700 p-3 text-sm mb-2">
+                        <div class="mt-1 text-base leading-5 text-slate-300 flex items-center gap-3 whitespace-nowrap">
+                            <span>Active player: <span class="text-red-500 font-black" x-text="players[activePlayer].name"></span></span>
+                            <span>Target Round: <span class="text-red-500 font-black" x-text="getCurrentBowTieRound().label"></span></span>
+                        </div>
+
+                        <div class="mt-2 grid grid-cols-[90px_minmax(0,1fr)] gap-2 items-start">
+                            <div class="space-y-1.5 rounded-lg border border-slate-700 bg-slate-900/50 p-1.5">
+                                <div class="px-1 text-[9px] uppercase tracking-[0.18em] text-slate-400">Round targets</div>
+                                <template x-for="(target, index) in [
+                                    'Free', 20, 19, 'Treble (T)', 18, 17, 'Double (D)',
+                                    16, 15, '3 Color', 'BowTie (BT)', 'Bull (B)'
+                                ]" :key="index">
+                                    <button
+                                        type="button"
+                                        :disabled="['Free', 'Treble (T)', 'Double (D)', '3 Color', 'BowTie (BT)'].includes(target)"
+                                        @click="if (!['Free', 'Treble (T)', 'Double (D)', '3 Color', 'BowTie (BT)'].includes(target)) addBowTieRoundTarget(target)"
+                                        :class="[
+                                            'w-full rounded-md border border-slate-600 px-1.5 py-1.5 text-[11px] font-black text-slate-100 hover:brightness-110 focus:outline-none active:scale-[0.98] bg-slate-700/90',
+                                            isCurrentBowTieTarget(target) ? 'bg-red-300 text-red-950 border-red-200 shadow-[0_0_0_2px_rgba(254,202,202,0.9),0_0_16px_rgba(239,68,68,0.7)] ring-2 ring-red-200/90' : '',
+                                            ['Free', 'Treble (T)', 'Double (D)', '3 Color', 'BowTie (BT)'].includes(target) ? 'opacity-50 cursor-not-allowed' : ''
+                                        ]"
+                                        x-text="target"
+                                    ></button>
+                                </template>
+                            </div>
+
+                            <div class="grid gap-1.5">
+                                <template x-for="(row, rowIndex) in getBowTiePlayerRows()" :key="rowIndex">
+                                    <div class="grid gap-1.5" :style="'grid-template-columns: repeat(' + row.length + ', minmax(0, 1fr))'">
+                                        <template x-for="(player, index) in row" :key="player.index">
+                                            <div :class="activePlayer === player.index ? 'bg-slate-700 border-t-4 border-red-500' : 'bg-slate-900/70'" class="min-w-0 rounded-lg border border-slate-700 px-0.5 py-2 text-center">
+                                                <div class="text-[9px] font-bold uppercase tracking-wide text-slate-400 truncate" x-text="player.name"></div>
+                                                <div
+                                                    class="mt-1 font-black tracking-tight leading-none whitespace-nowrap"
+                                                    :class="(activePlayer === player.index ? 'font-black ' : 'font-normal ') + (String(player.bowTieScore).length >= 4 ? 'text-base' : (String(player.bowTieScore).length === 3 ? 'text-lg' : 'text-2xl'))"
+                                                    x-text="player.bowTieScore"
+                                                ></div>
+                                            </div>
+                                        </template>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+
+                        <div class="mt-3 border-t border-slate-700 pt-2">
+                            <label class="px-1 text-[9px] uppercase tracking-[0.18em] text-slate-400">Score for round</label>
+                            <input
+                                type="text"
+                                x-model="bowTieRoundInput"
+                                @keydown.enter.prevent="submitBowTieTurn()"
+                                placeholder="20 20 18"
+                                class="mt-1 w-full rounded-md border border-slate-600 bg-slate-950 px-2.5 py-1.5 text-sm font-mono text-white placeholder:text-slate-500 focus:border-yellow-400 outline-none"
+                            />
+                            <div class="mt-1.5 grid grid-cols-3 gap-1.5">
+                                <button @click="submitBowTieTurn()" class="bg-green-600 hover:bg-green-500 font-bold py-2 rounded-md text-[11px]">ENTER</button>
+                                <button @click="clearBowTieRoundInput()" class="bg-slate-600 hover:bg-slate-500 font-bold py-2 rounded-md text-[11px]">CLEAR</button>
+                                <button @click="undo()" class="bg-yellow-600 hover:bg-yellow-500 font-bold py-2 rounded-md text-[11px]">UNDO</button>
+                            </div>
+                        </div>
+                    </div>
+                </template>
+
+                <!-- Current Turn Input Display -->
+                <template x-if="!isCricketGameMode() && !isBowTieGameMode()">
+                    <div class="bg-slate-800/60 border border-slate-700 rounded-2xl p-4 w-full max-w-sm text-center shadow-inner">
+                        <div class="text-xs text-slate-400 uppercase mb-1">Current Turn Score</div>
+                        <div class="text-5xl font-mono font-black text-red-500 tracking-widest h-14" x-text="currentTurnScore || '0'"></div>
+                        <div class="mt-3 grid grid-cols-2 gap-2 text-left">
+                            <div class="bg-slate-900/60 rounded-lg p-2">
+                                <div class="text-[10px] uppercase tracking-wider text-slate-400">Turn Total</div>
+                                <div class="font-mono font-bold text-red-400" x-text="turnTotalPreview()"></div>
+                            </div>
+                            <div class="bg-slate-900/60 rounded-lg p-2">
+                                <div class="text-[10px] uppercase tracking-wider text-slate-400">New Score</div>
+                                <div class="font-mono font-bold text-green-400" x-text="newScorePreview()"></div>
+                            </div>
+                        </div>
+                    </div>
+                </template>
+            </div>
+
+            <!-- KEYPAD CONTROLS -->
+            <div class="bg-slate-800 border-t border-slate-700 p-3 shrink-0">
+                <div class="max-w-md mx-auto">
+                    
+                    <!-- X01 Numeric Keypad -->
+                    <template x-if="isX01GameMode()">
+                        <div class="grid grid-cols-4 gap-2 mb-2">
+                            <button @click="pressKey('1')" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-base font-bold py-2 rounded-lg">1</button>
+                            <button @click="pressKey('2')" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-base font-bold py-2 rounded-lg">2</button>
+                            <button @click="pressKey('3')" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-base font-bold py-2 rounded-lg">3</button>
+                            <button @click="pressKey('back')" class="keypad-btn bg-red-900/60 hover:bg-red-800 text-[10px] font-bold py-2 rounded-lg text-red-300">Del</button>
+
+                            <button @click="pressKey('4')" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-base font-bold py-2 rounded-lg">4</button>
+                            <button @click="pressKey('5')" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-base font-bold py-2 rounded-lg">5</button>
+                            <button @click="pressKey('6')" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-base font-bold py-2 rounded-lg">6</button>
+                            <button @click="bustTurn()" class="keypad-btn bg-red-700/80 hover:bg-red-600 text-[9px] font-bold py-2 rounded-lg text-red-50">BUST</button>
+
+                            <button @click="pressKey('7')" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-base font-bold py-2 rounded-lg">7</button>
+                            <button @click="pressKey('8')" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-base font-bold py-2 rounded-lg">8</button>
+                            <button @click="pressKey('9')" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-base font-bold py-2 rounded-lg">9</button>
+                            <button @click="setScore(0)" class="keypad-btn bg-yellow-600/80 hover:bg-yellow-500 text-[9px] font-bold py-2 rounded-lg text-yellow-50">MISS</button>
+
+                            <button @click="pressKey('+')" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-base font-bold py-2 rounded-lg text-yellow-300" style="grid-column: 1;">+</button>
+                            <button @click="pressKey('0')" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-base font-bold py-2 rounded-lg" style="grid-column: 2;">0</button>
+                            <button @click="pressKey('*')" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-base font-bold py-2 rounded-lg text-yellow-300" style="grid-column: 3;">×</button>
+                            <button @click="submitX01()" class="keypad-btn bg-green-600 hover:bg-green-500 font-bold py-2 rounded-lg text-[10px] shadow" style="grid-column: 4;">ENTER</button>
+
+                            <div class="col-span-4 grid grid-cols-6 gap-1">
+                                <button @click="setScore(26)" class="keypad-btn bg-amber-500/20 hover:bg-amber-500/30 text-[8px] font-bold py-1.5 rounded-lg text-amber-200 border border-amber-400/20">26</button>
+                                <button @click="setScore(41)" class="keypad-btn bg-amber-500/20 hover:bg-amber-500/30 text-[8px] font-bold py-1.5 rounded-lg text-amber-200 border border-amber-400/20">41</button>
+                                <button @click="setScore(45)" class="keypad-btn bg-amber-500/20 hover:bg-amber-500/30 text-[8px] font-bold py-1.5 rounded-lg text-amber-200 border border-amber-400/20">45</button>
+                                <button @click="setScore(60)" class="keypad-btn bg-sky-500/20 hover:bg-sky-500/30 text-[8px] font-bold py-1.5 rounded-lg text-sky-200 border border-sky-400/20">60</button>
+                                <button @click="setScore(81)" class="keypad-btn bg-sky-500/20 hover:bg-sky-500/30 text-[8px] font-bold py-1.5 rounded-lg text-sky-200 border border-sky-400/20">81</button>
+                                <button @click="setScore(100)" class="keypad-btn bg-sky-500/20 hover:bg-sky-500/30 text-[8px] font-bold py-1.5 rounded-lg text-sky-200 border border-sky-400/20">100</button>
+                            </div>
+
+                        </div>
+                    </template>
+
+                    <!-- Cricket Keypad -->
+                    <template x-if="isCricketGameMode()">
+                        <div class="mb-2 grid grid-cols-2 gap-2">
+                            <button @click="undo()" class="bg-yellow-600 hover:bg-yellow-500 font-bold py-3 rounded-lg text-sm">UNDO</button>
+                            <button @click="submitCricketTurn()" class="bg-green-600 hover:bg-green-500 font-bold py-3 rounded-lg text-sm">ENTER</button>
+                        </div>
+                    </template>
+
+                    <!-- Bottom Utility Bar -->
+                    <div class="flex justify-between items-center mt-2 pt-2 border-t border-slate-700 text-xs">
+                        <template x-if="!isCricketGameMode() && !isBowTieGameMode()">
+                            <button @click="undo()" class="text-slate-400 hover:text-white flex items-center space-x-1">
+                                <span>↩ Undo Last Dart/Turn</span>
+                            </button>
+                        </template>
+                        <span class="text-slate-500">Scoreboard v0.1</span>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- APPLICATION SCRIPT LOGIC -->
+    <script>
+        function dartApp() {
+            return {
+                screen: 'menu',
+                gameMode: '501',
+                matchType: 'Single Leg',
+                playerCount: 2,
+                activePlayer: 0,
+                currentTurnScore: '',
+                bowTieRoundIndex: 0,
+                bowTieDarts: [],
+                bowTieRoundInput: '',
+                players: [
+                    { name: 'P0', score: 501, history: [], cricketScore: 0, marks: {20:0, 19:0, 18:0, 17:0, 16:0, 15:0, 'B':0}, turnDarts: 0 },
+                    { name: 'P1', score: 501, history: [], cricketScore: 0, marks: {20:0, 19:0, 18:0, 17:0, 16:0, 15:0, 'B':0}, turnDarts: 0 }
+                ],
+                lastTurn: null,
+                undoStack: [],
+
+                saveUndoState() {
+                    this.undoStack.push({
+                        screen: this.screen,
+                        gameMode: this.gameMode,
+                        playerCount: this.playerCount,
+                        activePlayer: this.activePlayer,
+                        currentTurnScore: this.currentTurnScore,
+                        bowTieRoundIndex: this.bowTieRoundIndex,
+                        bowTieDarts: JSON.parse(JSON.stringify(this.bowTieDarts || [])),
+                        bowTieRoundInput: this.bowTieRoundInput,
+                        players: JSON.parse(JSON.stringify(this.players)),
+                        lastTurn: this.lastTurn ? { ...this.lastTurn } : null
+                    });
+                },
+
+                restoreUndoState(snapshot) {
+                    if (!snapshot) return;
+                    this.screen = snapshot.screen;
+                    this.gameMode = snapshot.gameMode;
+                    this.playerCount = snapshot.playerCount;
+                    this.activePlayer = snapshot.activePlayer;
+                    this.currentTurnScore = snapshot.currentTurnScore;
+                    this.bowTieRoundIndex = snapshot.bowTieRoundIndex ?? 0;
+                    this.bowTieDarts = JSON.parse(JSON.stringify(snapshot.bowTieDarts || []));
+                    this.bowTieRoundInput = snapshot.bowTieRoundInput || '';
+                    this.players = JSON.parse(JSON.stringify(snapshot.players));
+                    this.lastTurn = snapshot.lastTurn ? { ...snapshot.lastTurn } : null;
+                },
+
+                getPlayerSlots() {
+                    const count = (this.isX01GameMode() || this.isBowTieGameMode())
+                        ? Math.min(this.getMaxPlayerCount(), Math.max(1, Number(this.playerCount) || 2))
+                        : 2;
+                    return Array.from({ length: count }, (_, index) => ({ index, name: this.players[index]?.name || `Player ${index + 1}` }));
+                },
+
+                getBowTieRounds() {
+                    return [
+                        { key: 'free', label: 'Free', type: 'free' },
+                        { key: '20', label: '20', type: 'target', target: 20 },
+                        { key: '19', label: '19', type: 'target', target: 19 },
+                        { key: 'treble', label: 'Treble (T)', type: 'anyTreble' },
+                        { key: '18', label: '18', type: 'target', target: 18 },
+                        { key: '17', label: '17', type: 'target', target: 17 },
+                        { key: 'double', label: 'Double (D)', type: 'anyDouble' },
+                        { key: '16', label: '16', type: 'target', target: 16 },
+                        { key: '15', label: '15', type: 'target', target: 15 },
+                        { key: '3color', label: '3 Color', type: 'threeColor' },
+                        { key: 'bt', label: 'BowTie (BT)', type: 'bowtie' },
+                        { key: 'bull', label: 'Bull (B)', type: 'bull' }
+                    ];
+                },
+
+                getCurrentBowTieRound() {
+                    const rounds = this.getBowTieRounds();
+                    return rounds[Math.min(this.bowTieRoundIndex || 0, rounds.length - 1)] || rounds[0];
+                },
+
+                isCurrentBowTieTarget(target) {
+                    const active = this.getCurrentBowTieRound();
+                    if (!active) return false;
+
+                    const activeIndex = this.getBowTieRounds().findIndex((round) => round.key === active.key);
+                    const targetIndex = this.getBowTieTargetIndex(target);
+                    return activeIndex === targetIndex;
+                },
+
+                getBowTieTargetIndex(target) {
+                    const targets = [
+                        'Free',
+                        20,
+                        19,
+                        'Treble (T)',
+                        18,
+                        17,
+                        'Double (D)',
+                        16,
+                        15,
+                        '3 Color',
+                        'BowTie (BT)',
+                        'Bull (B)'
+                    ];
+
+                    const token = String(target || '').trim();
+                    return targets.findIndex((item) => String(item).trim() === token);
+                },
+
+                polarToCartesian(cx, cy, radius, angleDeg) {
+                    const radians = (angleDeg - 90) * (Math.PI / 180);
+                    return {
+                        x: cx + radius * Math.cos(radians),
+                        y: cy + radius * Math.sin(radians)
+                    };
+                },
+
+                describeRingSegment(cx, cy, innerR, outerR, startDeg, endDeg) {
+                    const startOuter = this.polarToCartesian(cx, cy, outerR, startDeg);
+                    const endOuter = this.polarToCartesian(cx, cy, outerR, endDeg);
+                    const startInner = this.polarToCartesian(cx, cy, innerR, startDeg);
+                    const endInner = this.polarToCartesian(cx, cy, innerR, endDeg);
+                    return [
+                        `M ${startOuter.x} ${startOuter.y}`,
+                        `L ${endOuter.x} ${endOuter.y}`,
+                        `L ${endInner.x} ${endInner.y}`,
+                        `L ${startInner.x} ${startInner.y}`,
+                        'Z'
+                    ].join(' ');
+                },
+
+                getDartboardSegments() {
+                    const numbers = [20, 1, 18, 4, 13, 6, 10, 15, 2, 17, 3, 19, 7, 16, 8, 11, 14, 9, 12, 5];
+                    const cx = 210;
+                    const cy = 210;
+                    return numbers.map((value, index) => {
+                        const startDeg = index * 18;
+                        const endDeg = startDeg + 18;
+                        const midDeg = (startDeg + endDeg) / 2;
+                        const labelPos = this.polarToCartesian(cx, cy, 76, midDeg);
+                        return {
+                            value,
+                            startDeg,
+                            endDeg,
+                            singlePath: this.describeRingSegment(cx, cy, 32, 66, startDeg, endDeg),
+                            triplePath: this.describeRingSegment(cx, cy, 66, 83, startDeg, endDeg),
+                            doublePath: this.describeRingSegment(cx, cy, 118, 138, startDeg, endDeg),
+                            labelX: labelPos.x,
+                            labelY: labelPos.y
+                        };
+                    });
+                },
+
+                getBowTiePlayerRows() {
+                    const rows = [];
+                    for (let index = 0; index < this.players.length; index += 4) {
+                        rows.push(this.players.slice(index, index + 4).map((player, offset) => ({
+                            ...player,
+                            index: index + offset
+                        })));
+                    }
+                    return rows;
+                },
+
+                getPlayerGridClasses() {
+                    const count = this.players.length || this.playerCount || 2;
+                    if (count <= 2) return 'grid-cols-2';
+                    if (count === 3) return 'grid-cols-3';
+                    if (count <= 4) return 'grid-cols-2';
+                    if (count <= 6) return 'grid-cols-3';
+                    return 'grid-cols-4';
+                },
+                
+                isCricketGameMode() {
+                    return this.isStandardCricketGameMode() || this.isThreeWayCricketGameMode();
+                },
+
+                isStandardCricketGameMode() {
+                    return this.gameMode === 'Cricket';
+                },
+
+                isThreeWayCricketGameMode() {
+                    return this.gameMode === '3-Way Cricket';
+                },
+
+                isX01GameMode() {
+                    return ['601', '501', '401', '301', '201', '101'].includes(String(this.gameMode));
+                },
+
+                isBowTieGameMode() {
+                    return this.gameMode === 'BowTie';
+                },
+
+                getMaxPlayerCount() {
+                    if (this.isBowTieGameMode()) return 15;
+                    if (this.isX01GameMode()) return 4;
+                    return 2;
+                },
+
+                getPlayerCountOptions() {
+                    const max = this.getMaxPlayerCount();
+                    return Array.from({ length: max }, (_, index) => index + 1);
+                },
+
+                getPlayerNameSetupGridClasses() {
+                    return Number(this.playerCount) > 6 ? 'grid-cols-4' : 'grid-cols-2';
+                },
+
+                getPlayerNameMaxLength() {
+                    if (this.isBowTieGameMode()) return 5;
+                    return Number(this.playerCount) > 6 ? 2 : 4;
+                },
+
+                setPlayerName(index, value) {
+                    const maxLength = this.getPlayerNameMaxLength();
+                    const nextValue = String(value || '').replace(/[^A-Za-z0-9]/g, '').slice(0, maxLength).toUpperCase();
+                    if (!this.players[index]) return;
+                    this.players[index].name = nextValue;
+                },
+
+                getStartingScore() {
+                    return this.isX01GameMode() ? Number(this.gameMode) : 0;
+                },
+
+                setupPlayerNames() {
+                    const count = this.isThreeWayCricketGameMode()
+                        ? 3
+                        : (this.isStandardCricketGameMode()
+                            ? 2
+                            : (this.isBowTieGameMode()
+                                ? Math.min(this.getMaxPlayerCount(), Math.max(1, Number(this.playerCount) || 2))
+                                : (this.isX01GameMode() ? Math.min(this.getMaxPlayerCount(), Math.max(1, Number(this.playerCount) || 2)) : 2)));
+                    const existing = this.players.slice(0, count).map((player) => String(player.name || '').slice(0, this.getPlayerNameMaxLength()).toUpperCase());
+                    this.players = Array.from({ length: count }, (_, index) => ({
+                        name: existing[index] || `P${index}`,
+                        score: this.isX01GameMode() ? Number(this.gameMode) : 0,
+                        history: [],
+                        cricketScore: 0,
+                        marks: {20:0, 19:0, 18:0, 17:0, 16:0, 15:0, 'B':0},
+                        turnDarts: 0,
+                        bowTieScore: 0
+                    }));
+                },
+
+                startMatch() {
+                    const startingScore = this.getStartingScore();
+                    this.setupPlayerNames();
+                    this.players = this.players.map((player, index) => ({
+                        ...player,
+                        name: player.name || `P${index}`,
+                        score: startingScore,
+                        history: [],
+                        cricketScore: 0,
+                        marks: {20:0, 19:0, 18:0, 17:0, 16:0, 15:0, 'B':0},
+                        turnDarts: 0,
+                        bowTieScore: 0
+                    }));
+                    this.activePlayer = 0;
+                    this.currentTurnScore = '';
+                    this.bowTieRoundIndex = 0;
+                    this.bowTieDarts = [];
+                    this.bowTieRoundInput = '';
+                    this.screen = 'scoring';
+                    this.undoStack = [this.saveUndoStateSnapshot()];
+                },
+
+                saveUndoStateSnapshot() {
+                    return {
+                        screen: this.screen,
+                        gameMode: this.gameMode,
+                        playerCount: this.playerCount,
+                        activePlayer: this.activePlayer,
+                        currentTurnScore: this.currentTurnScore,
+                        bowTieRoundIndex: this.bowTieRoundIndex ?? 0,
+                        bowTieDarts: JSON.parse(JSON.stringify(this.bowTieDarts || [])),
+                        bowTieRoundInput: this.bowTieRoundInput || '',
+                        players: JSON.parse(JSON.stringify(this.players)),
+                        lastTurn: this.lastTurn ? { ...this.lastTurn } : null
+                    };
+                },
+
+                resetMatch() {
+                    this.screen = 'menu';
+                },
+
+                pressKey(val) {
+                    if (val === 'back') {
+                        this.currentTurnScore = this.currentTurnScore.slice(0, -1);
+                        return;
+                    }
+
+                    if (!/[0-9+*xX]/.test(val)) return;
+
+                    const sanitized = val.toLowerCase() === 'x' ? '*' : val;
+                    const current = this.currentTurnScore;
+                    const lastChar = current.slice(-1);
+
+                    if (sanitized === '*') {
+                        if (!current || /[+*]/.test(lastChar)) return;
+                    } else if (sanitized === '+') {
+                        if (!current || /[+*]/.test(lastChar)) return;
+                    } else {
+                        if (current === '0' && sanitized === '0') return;
+                    }
+
+                    this.currentTurnScore += sanitized;
+                },
+
+                evaluateTurnScore() {
+                    const expr = this.currentTurnScore.replace(/x/gi, '*');
+                    if (!expr) return 0;
+
+                    try {
+                        const value = Function(`"use strict"; return (${expr});`)();
+                        if (!Number.isFinite(value)) return 0;
+                        return Math.min(Math.max(0, value), 180);
+                    } catch (error) {
+                        return 0;
+                    }
+                },
+
+                setScore(num) {
+                    this.currentTurnScore = num.toString();
+                    this.submitX01();
+                },
+
+                bustTurn() {
+                    this.currentTurnScore = '0';
+                    this.submitX01();
+                },
+
+                submitX01() {
+                    this.saveUndoState();
+                    let pts = this.evaluateTurnScore();
+                    const actingPlayer = this.activePlayer;
+
+                    let p = this.players[actingPlayer];
+                    
+                    // Validate Bust rules
+                    if (p.score - pts < 0 || p.score - pts === 1) {
+                        pts = 0; // Bust
+                        alert("BUST!");
+                    }
+
+                    this.lastTurn = { player: actingPlayer, pts: pts };
+                    p.history.push({ pts: pts, remaining: p.score - pts });
+                    p.score -= pts;
+
+                    if (p.score === 0) {
+                        alert(`${p.name} WINS THE LEG!`);
+                        this.screen = 'menu';
+                        return;
+                    }
+
+                    this.currentTurnScore = '';
+                    this.activePlayer = (this.activePlayer + 1) % this.players.length;
+                },
+
+                addBowTieRoundTarget(target) {
+                    if (!this.isBowTieGameMode()) return;
+                    if (['Free', 'Treble (T)', 'Double (D)', '3 Color', 'BowTie (BT)'].includes(target)) return;
+
+                    const normalizedTarget = typeof target === 'string' ? target.trim() : String(target);
+                    const value = normalizedTarget === 'Bull (B)' ? 25 : (normalizedTarget === 'B' ? 25 : Number(normalizedTarget));
+                    const current = (this.bowTieRoundInput || '').trim();
+                    const token = normalizedTarget === 'Bull (B)' || normalizedTarget === 'B'
+                        ? 'B'
+                        : (normalizedTarget === 'Treble (T)' ? 'T' : (normalizedTarget === 'Double (D)' ? 'D' : (normalizedTarget === '3 Color' ? '3C' : (normalizedTarget === 'BT' ? 'BT' : (normalizedTarget === 'Free' ? 'FREE' : String(value))))));
+
+                    this.bowTieRoundInput = current ? `${current} ${token}` : token;
+
+                    if (Number.isFinite(value) && value > 0) {
+                        this.bowTieDarts.push({
+                            value,
+                            multiplier: 1,
+                            color: value === 25 ? 'green' : (value % 2 === 0 ? 'black' : 'red')
+                        });
+                    }
+                },
+
+                clearBowTieRoundInput() {
+                    this.bowTieRoundInput = '';
+                    this.bowTieDarts = [];
+                },
+
+                parseBowTieRoundInput() {
+                    const raw = String(this.bowTieRoundInput || '').trim();
+                    if (!raw) {
+                        return this.bowTieDarts.slice();
+                    }
+
+                    return raw
+                        .split(/[\s,]+/)
+                        .filter(Boolean)
+                        .map((token) => {
+                            const normalized = token.toUpperCase();
+                            if (normalized === 'FREE') return null;
+                            if (normalized === '3C' || normalized === '3-COLOR') return null;
+                            if (normalized === 'BT') return null;
+                            if (normalized === 'B' || normalized === 'BULL') return { value: 25, multiplier: 1, color: 'green' };
+                            if (normalized === 'T') return null;
+                            if (normalized === 'D') return null;
+                            if (normalized.startsWith('T')) return { value: Number(normalized.slice(1)) || 0, multiplier: 3, color: 'red' };
+                            if (normalized.startsWith('D')) return { value: Number(normalized.slice(1)) || 0, multiplier: 2, color: 'black' };
+                            const value = Number(normalized);
+                            return {
+                                value: Number.isFinite(value) ? value : 0,
+                                multiplier: 1,
+                                color: value === 25 ? 'green' : (value % 2 === 0 ? 'black' : 'red')
+                            };
+                        })
+                        .filter(Boolean)
+                        .filter((dart) => Number.isFinite(dart.value) && dart.value > 0);
+                },
+
+                bowTieAddDart(value, multiplier = 1) {
+                    if (!this.isBowTieGameMode()) return;
+                    this.bowTieDarts.push({ value: value === null ? 0 : Number(value), multiplier: Number(multiplier) || 0, color: value === null ? 'miss' : (value === 25 || value === 50 ? 'green' : (value % 2 === 0 ? 'black' : 'red')) });
+                    if (this.bowTieDarts.length >= 3) {
+                        this.submitBowTieTurn();
+                    }
+                },
+
+                rollBowTiePenalty(player) {
+                    const total = Number(player.bowTieScore || 0);
+                    const adjusted = total % 2 === 1 ? total + 1 : total;
+                    return Math.floor(adjusted / 2);
+                },
+
+                resolveBowTieRound(player, round, darts) {
+                    const current = Number(player.bowTieScore || 0);
+                    const sumPoints = (items) => items.reduce((total, dart) => total + (Number(dart.value) || 0) * (Number(dart.multiplier) || 1), 0);
+
+                    if (round.type === 'free') {
+                        const hits = darts.filter((dart) => dart && Number(dart.value) > 0);
+                        if (!hits.length) return this.rollBowTiePenalty(player);
+                        return current + sumPoints(hits);
+                    }
+
+                    if (round.type === 'target') {
+                        const hits = darts.filter((dart) => Number(dart.value) === Number(round.target));
+                        if (!hits.length) return this.rollBowTiePenalty(player);
+                        return current + sumPoints(hits);
+                    }
+
+                    if (round.type === 'anyTreble' || round.type === 'anyDouble' || round.type === 'threeColor' || round.type === 'bowtie') {
+                        const enteredPoints = darts.reduce((total, dart) => total + (Number(dart.value) || 0) * (Number(dart.multiplier) || 1), 0);
+                        if (enteredPoints <= 0) return this.rollBowTiePenalty(player);
+                        if (round.type === 'anyTreble' && enteredPoints % 3 !== 0) return this.rollBowTiePenalty(player);
+                        if (round.type === 'anyDouble' && enteredPoints % 2 !== 0) return this.rollBowTiePenalty(player);
+                        return current + enteredPoints;
+                    }
+
+                    if (round.type === 'bull') {
+                        const hits = darts.filter((dart) => [25, 50].includes(Number(dart.value)));
+                        if (!hits.length) return this.rollBowTiePenalty(player);
+                        return current + sumPoints(hits);
+                    }
+
+                    return current;
+                },
+
+                submitBowTieTurn() {
+                    if (!this.isBowTieGameMode()) return;
+                    this.saveUndoState();
+                    const player = this.players[this.activePlayer];
+                    if (!player) return;
+
+                    const round = this.getCurrentBowTieRound();
+                    const darts = this.parseBowTieRoundInput();
+                    const trustedSpecialRound = ['anyTreble', 'anyDouble', 'threeColor', 'bowtie'].includes(round.type);
+
+                    if (trustedSpecialRound) {
+                        const enteredPoints = darts.reduce((total, dart) => total + (Number(dart.value) || 0) * (Number(dart.multiplier) || 1), 0);
+                        const trebleValid = round.type !== 'anyTreble' || enteredPoints % 3 === 0;
+                        const doubleValid = round.type !== 'anyDouble' || enteredPoints % 2 === 0;
+
+                        if (enteredPoints > 0 && trebleValid && doubleValid) {
+                            player.bowTieScore = Number(player.bowTieScore || 0) + enteredPoints;
+                        } else {
+                            player.bowTieScore = this.rollBowTiePenalty(player);
+                        }
+                    } else {
+                        player.bowTieScore = this.resolveBowTieRound(player, round, darts);
+                    }
+
+                    this.bowTieDarts = [];
+                    this.bowTieRoundInput = '';
+                    this.activePlayer = (this.activePlayer + 1) % this.players.length;
+                    if (this.activePlayer === 0) {
+                        this.bowTieRoundIndex += 1;
+                    }
+
+                    if (this.bowTieRoundIndex >= this.getBowTieRounds().length) {
+                        const winner = this.players.reduce((best, currentPlayer) => {
+                            if (!best || Number(currentPlayer.bowTieScore) > Number(best.bowTieScore)) return currentPlayer;
+                            return best;
+                        }, null);
+                        if (winner) {
+                            alert(`${winner.name} wins BowTie with ${winner.bowTieScore} points!`);
+                        }
+                    }
+                },
+
+                getPlayerAvg(idx) {
+                    let p = this.players[idx];
+                    if (p.history.length === 0) return '0.00';
+                    let totalPts = p.history.reduce((acc, curr) => acc + curr.pts, 0);
+                    // 3-dart average multiplier
+                    let avg = (totalPts / (p.history.length * 3)) * 3;
+                    return avg.toFixed(2);
+                },
+
+                undo() {
+                    if (this.undoStack.length <= 1) {
+                        const base = this.undoStack[0] || this.saveUndoStateSnapshot();
+                        this.restoreUndoState(base);
+                        this.undoStack = [base];
+                        return;
+                    }
+
+                    const previous = this.undoStack.pop();
+                    this.restoreUndoState(previous);
+                    if (this.isCricketGameMode()) {
+                        this.recalcCricketScores();
+                    }
+                },
+
+                turnTotalPreview() {
+                    const total = this.evaluateTurnScore();
+                    return this.currentTurnScore ? total.toString() : '0';
+                },
+
+                newScorePreview() {
+                    if (!this.currentTurnScore) {
+                        return this.players[this.activePlayer].score;
+                    }
+
+                    const total = this.evaluateTurnScore();
+                    const next = this.players[this.activePlayer].score - total;
+                    if (next < 0 || next === 1) {
+                        return 'Bust';
+                    }
+                    return next;
+                },
+
+                checkoutInfo() {
+                    return this.getCheckout(this.newScorePreview() === 'Bust' ? this.players[this.activePlayer].score : this.newScorePreview());
+                },
+
+                getCheckout(score) {
+                    const remaining = Number(score);
+                    if (!Number.isFinite(remaining) || remaining <= 1 || remaining > 170) {
+                        return { summary: 'Build Score', twoDart: '', threeDart: '' };
+                    }
+
+                    const throwOptions = [];
+                    for (let n = 1; n <= 20; n++) {
+                        throwOptions.push({ value: n, label: String(n) });
+                        throwOptions.push({ value: n * 2, label: `D${n}` });
+                        throwOptions.push({ value: n * 3, label: `T${n}` });
+                    }
+                    throwOptions.push({ value: 25, label: 'Bull' });
+                    throwOptions.push({ value: 50, label: 'DBull' });
+                    throwOptions.sort((a, b) => b.value - a.value);
+
+                    const isValidFinish = (option) => {
+                        if (!option) return false;
+                        return option.label === 'DBull' || option.label.startsWith('D');
+                    };
+
+                    const priorityScore = (route) => {
+                        const routeText = route.map((item) => item.label).join(' ');
+                        if (remaining === 41) {
+                            if (routeText === '1 D20') return 0;
+                            if (routeText === '9 D16') return 1;
+                        }
+
+                        const total = route.reduce((sum, item) => sum + item.value, 0);
+                        if ([40, 32, 16].includes(total) && route.length === 1) return 0;
+
+                        const subtotal = route.slice(0, -1).reduce((sum, item) => sum + item.value, 0);
+                        if ([40, 32, 16].includes(subtotal)) return 0;
+                        return 1;
+                    };
+
+                    const findExactCheckout = (dartCount) => {
+                        const matches = [];
+                        const seen = new Set();
+
+                        const search = (target, combo, depth) => {
+                            if (depth === dartCount) {
+                                if (target === 0 && combo.length === dartCount && isValidFinish(combo[combo.length - 1])) {
+                                    const route = combo.map((t) => t.label);
+                                    const key = route.join('-');
+                                    if (!seen.has(key)) {
+                                        seen.add(key);
+                                        matches.push({ route: route.join(' '), throws: combo });
+                                    }
+                                }
+                                return;
+                            }
+
+                            for (const option of throwOptions) {
+                                const nextTarget = target - option.value;
+                                if (nextTarget < 0) continue;
+
+                                if (depth === dartCount - 1) {
+                                    if (nextTarget === 0 && isValidFinish(option)) {
+                                        const fullCombo = [...combo, option];
+                                        const route = fullCombo.map((t) => t.label);
+                                        const key = route.join('-');
+                                        if (!seen.has(key)) {
+                                            seen.add(key);
+                                            matches.push({ route: route.join(' '), throws: fullCombo });
+                                        }
+                                    }
+                                    continue;
+                                }
+
+                                search(nextTarget, [...combo, option], depth + 1);
+                            }
+                        };
+
+                        search(remaining, [], 0);
+                        return matches.sort((a, b) => {
+                            const diff = priorityScore(a.throws) - priorityScore(b.throws);
+                            if (diff !== 0) return diff;
+                            return a.route.localeCompare(b.route);
+                        }).map((match) => match.route);
+                    };
+
+                    const twoDart = findExactCheckout(2)[0] || '';
+                    const threeDart = findExactCheckout(3)[0] || '';
+
+                    if (twoDart && threeDart) {
+                        return { summary: 'Checkout route', twoDart, threeDart };
+                    }
+                    if (twoDart) {
+                        return { summary: '2-Dart checkout', twoDart, threeDart };
+                    }
+                    if (threeDart) {
+                        return { summary: '3-Dart checkout', twoDart, threeDart };
+                    }
+                    return { summary: 'Standard route available', twoDart, threeDart };
+                },
+
+                renderMarks(marks) {
+                    if (marks === 0) return '-';
+                    if (marks === 1) return '/';
+                    if (marks === 2) return 'X';
+                    return '⨷'; // Closed
+                },
+
+                getCricketExtraScore(playerIndex, target) {
+                    const player = this.players[playerIndex];
+                    const otherIndex = playerIndex === 0 ? 1 : 0;
+                    const playerMarks = player.marks[target] || 0;
+                    const otherMarks = this.players[otherIndex].marks[target] || 0;
+                    const targetValue = target === 'B' ? 25 : Number(target);
+
+                    if (playerMarks < 3 || otherMarks >= 3) return '';
+
+                    const extraMarks = Math.max(0, playerMarks - 3);
+                    return extraMarks > 0 ? String(extraMarks * targetValue) : '';
+                },
+
+                getCricketHitFeedback(playerIndex) {
+                    const player = this.players[playerIndex];
+                    const totalClosedMarks = [20, 19, 18, 17, 16, 15, 'B'].reduce((sum, target) => {
+                        const closedIndexes = this.players
+                            .map((candidate, index) => ((candidate.marks[target] || 0) >= 3 ? index : -1))
+                            .filter((index) => index !== -1);
+
+                        if (closedIndexes.length !== 1) return sum;
+                        const winnerIndex = closedIndexes[0];
+                        if (winnerIndex !== playerIndex) return sum;
+                        return sum + (this.players[winnerIndex].marks[target] || 0);
+                    }, 0);
+
+                    const displayHits = Math.max(totalClosedMarks, player.turnDarts || 0);
+                    if (displayHits > 4) return `${player.name}: ${displayHits} hits`;
+                    return '';
+                },
+
+                recalcCricketScores() {
+                    if (this.isThreeWayCricketGameMode()) {
+                        this.players.forEach((player) => { player.cricketScore = 0; });
+                        [20, 19, 18, 17, 16, 15].forEach((target) => {
+                            const marks = this.players.map((player) => player.marks[target] || 0);
+                            const closedIndexes = marks
+                                .map((count, index) => (count >= 3 ? index : -1))
+                                .filter((index) => index !== -1);
+
+                            if (closedIndexes.length === 1) {
+                                const winnerIndex = closedIndexes[0];
+                                const extra = Math.max(0, marks[winnerIndex] - 3);
+                                this.players[winnerIndex].cricketScore += extra * Number(target);
+                            }
+                        });
+
+                        const bullMarks = this.players.map((player) => player.marks['B'] || 0);
+                        this.players.forEach((player, index) => {
+                            const extraBull = Math.max(0, bullMarks[index] - 3);
+                            if (extraBull > 0) {
+                                player.cricketScore += extraBull * 25;
+                            }
+                        });
+                        return;
+                    }
+
+                    this.players.forEach((player, index) => {
+                        const otherIndex = index === 0 ? 1 : 0;
+                        let total = 0;
+
+                        [20, 19, 18, 17, 16, 15, 'B'].forEach((target) => {
+                            const playerMarks = player.marks[target] || 0;
+                            const otherMarks = this.players[otherIndex].marks[target] || 0;
+                            const targetValue = target === 'B' ? 25 : Number(target);
+
+                            if (playerMarks >= 3 && otherMarks < 3) {
+                                total += Math.max(0, playerMarks - 3) * targetValue;
+                            }
+                        });
+
+                        player.cricketScore = total;
+                    });
+                },
+
+                hitCricket(playerIndex, target, multiplier) {
+                    const p = this.players[playerIndex];
+                    if (!p) return;
+                    if ((p.turnDarts || 0) >= 3) return;
+
+                    this.saveUndoState();
+                    p.marks[target] = (p.marks[target] || 0) + multiplier;
+                    p.turnDarts = (p.turnDarts || 0) + 1;
+                    this.recalcCricketScores();
+                },
+
+                missCricket() {
+                    this.submitCricketTurn();
+                },
+
+                submitCricketTurn() {
+                    this.saveUndoState();
+                    const current = this.players[this.activePlayer];
+                    if (current) current.turnDarts = 0;
+                    this.activePlayer = (this.activePlayer + 1) % this.players.length;
+                }
+            }
+        }
+    </script>
+</body>
+</html>
