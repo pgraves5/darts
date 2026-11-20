@@ -190,9 +190,9 @@
                             <span>Target Round: <span class="text-red-500 font-black" x-text="getCurrentBowTieRound().label"></span></span>
                         </div>
 
-                        <div class="mt-2 grid grid-cols-[84px_minmax(0,1fr)] sm:grid-cols-[90px_minmax(0,1fr)] gap-2 items-start">
+                        <div class="mt-2 grid grid-cols-[116px_minmax(0,1fr)] sm:grid-cols-[128px_minmax(0,1fr)] gap-2 items-start">
                             <div class="space-y-1.5 rounded-lg border border-slate-700 bg-slate-900/50 p-1.5">
-                                <div class="px-1 text-[9px] uppercase tracking-[0.18em] text-slate-400">Round targets</div>
+                                <div class="px-1 text-[9px] uppercase tracking-[0.18em] text-slate-400">TARGETS</div>
                                 <template x-for="(target, index) in [
                                     'Free', 20, 19, 'Treble (T)', 18, 17, 'Double (D)',
                                     16, 15, '3 Color', 'BowTie (BT)', 'Bull (B)'
@@ -202,7 +202,7 @@
                                         :disabled="['Free', 'Treble (T)', 'Double (D)', '3 Color', 'BowTie (BT)'].includes(target)"
                                         @click="if (!['Free', 'Treble (T)', 'Double (D)', '3 Color', 'BowTie (BT)'].includes(target)) addBowTieRoundTarget(target)"
                                         :class="[
-                                            'w-full rounded-md border border-slate-600 px-1.5 py-1.5 text-[11px] font-black text-slate-100 hover:brightness-110 focus:outline-none active:scale-[0.98] bg-slate-700/90',
+                                            'w-full whitespace-nowrap rounded-md border border-slate-600 px-1 py-1.5 text-[10px] sm:text-[11px] font-black text-slate-100 hover:brightness-110 focus:outline-none active:scale-[0.98] bg-slate-700/90',
                                             isCurrentBowTieTarget(target) ? 'bg-red-300 text-red-950 border-red-200 shadow-[0_0_0_2px_rgba(254,202,202,0.9),0_0_16px_rgba(239,68,68,0.7)] ring-2 ring-red-200/90' : '',
                                             ['Free', 'Treble (T)', 'Double (D)', '3 Color', 'BowTie (BT)'].includes(target) ? 'opacity-50 cursor-not-allowed' : ''
                                         ]"
@@ -229,19 +229,28 @@
                             </div>
                         </div>
 
-                        <div class="mt-3 border-t border-slate-700 pt-2">
-                            <label class="px-1 text-[9px] uppercase tracking-[0.18em] text-slate-400">Score for round</label>
-                            <input
-                                type="text"
-                                x-model="bowTieRoundInput"
-                                @keydown.enter.prevent="submitBowTieTurn()"
-                                placeholder="20 20 18"
-                                class="mt-1 w-full rounded-md border border-slate-600 bg-slate-950 px-2.5 py-1.5 text-sm font-mono text-white placeholder:text-slate-500 focus:border-yellow-400 outline-none"
-                            />
-                            <div class="mt-1.5 grid grid-cols-3 gap-1.5">
-                                <button @click="submitBowTieTurn()" class="bg-green-600 hover:bg-green-500 font-bold py-2 rounded-md text-[11px]">ENTER</button>
-                                <button @click="clearBowTieRoundInput()" class="bg-slate-600 hover:bg-slate-500 font-bold py-2 rounded-md text-[11px]">CLEAR</button>
-                                <button @click="undo()" class="bg-yellow-600 hover:bg-yellow-500 font-bold py-2 rounded-md text-[11px]">UNDO</button>
+                        <div class="mt-1 grid grid-cols-[116px_minmax(0,1fr)] sm:grid-cols-[128px_minmax(0,1fr)] gap-2 items-end">
+                            <div></div>
+                            <div class="grid gap-1.5">
+                                <div class="h-5"></div>
+                                <div>
+                                    <label class="block text-[9px] uppercase tracking-[0.18em] text-slate-400 mb-1">Score for round</label>
+                                    <input
+                                        type="text"
+                                        x-model="bowTieRoundInput"
+                                        @keydown.enter.prevent="submitBowTieTurn()"
+                                        placeholder="20 20 18"
+                                        class="w-full rounded-md border border-slate-600 bg-slate-950 px-2 py-1.5 text-sm font-mono text-white placeholder:text-slate-500 focus:border-yellow-400 outline-none"
+                                    />
+                                </div>
+                                <div class="grid grid-cols-3 gap-1.5">
+                                    <button @click="clearBowTieRoundInput()" class="bg-slate-600 hover:bg-slate-500 font-bold px-2 py-2 rounded-md text-[11px]">CLEAR</button>
+                                    <button @click="undo()" class="bg-yellow-600 hover:bg-yellow-500 font-bold px-2 py-2 rounded-md text-[11px]">UNDO</button>
+                                    <button @click="submitBowTieTurn()" class="bg-green-600 hover:bg-green-500 font-bold px-2 py-2 rounded-md text-[11px]">ENTER</button>
+                                </div>
+                            </div>
+                        </div>
+
                             </div>
                         </div>
                     </div>
@@ -278,18 +287,28 @@
                             <button @click="pressKey('4')" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-base font-bold py-2 rounded-lg">4</button>
                             <button @click="pressKey('5')" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-base font-bold py-2 rounded-lg">5</button>
                             <button @click="pressKey('6')" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-base font-bold py-2 rounded-lg">6</button>
-                            <button @click="bustTurn()" class="keypad-btn bg-red-700/80 hover:bg-red-600 text-[9px] font-bold py-2 rounded-lg text-red-50">BUST</button>
+                            <button @click="undo()" class="keypad-btn bg-yellow-600 hover:bg-yellow-500 text-[10px] font-bold py-2 rounded-lg text-yellow-50">UNDO</button>
 
                             <button @click="pressKey('7')" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-base font-bold py-2 rounded-lg">7</button>
                             <button @click="pressKey('8')" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-base font-bold py-2 rounded-lg">8</button>
                             <button @click="pressKey('9')" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-base font-bold py-2 rounded-lg">9</button>
+                            <div class="keypad-btn"></div>
+
+                            <button @click="pressKey('+')" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-base font-bold py-2 rounded-lg text-yellow-300">+</button>
+                            <button @click="pressKey('0')" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-base font-bold py-2 rounded-lg">0</button>
+                            <button @click="pressKey('*')" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-base font-bold py-2 rounded-lg text-yellow-300">×</button>
+                            <div class="keypad-btn"></div>
+
                             <button @click="setScore(0)" class="keypad-btn bg-yellow-600/80 hover:bg-yellow-500 text-[9px] font-bold py-2 rounded-lg text-yellow-50">MISS</button>
+                            <button @click="bustTurn()" class="keypad-btn bg-red-700/80 hover:bg-red-600 text-[9px] font-bold py-2 rounded-lg text-red-50">BUST</button>
+                            <button @click="submitX01()" class="keypad-btn bg-green-600 hover:bg-green-500 font-bold py-2 rounded-lg text-[10px] shadow">ENTER</button>
+                            <div class="keypad-btn"></div>
 
-                            <button @click="pressKey('+')" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-base font-bold py-2 rounded-lg text-yellow-300" style="grid-column: 1;">+</button>
-                            <button @click="pressKey('0')" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-base font-bold py-2 rounded-lg" style="grid-column: 2;">0</button>
-                            <button @click="pressKey('*')" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-base font-bold py-2 rounded-lg text-yellow-300" style="grid-column: 3;">×</button>
-                            <button @click="submitX01()" class="keypad-btn bg-green-600 hover:bg-green-500 font-bold py-2 rounded-lg text-[10px] shadow" style="grid-column: 4;">ENTER</button>
-
+                            <div
+                                x-show="x01BustMessage"
+                                class="col-span-4 text-center text-red-500 font-bold text-xs"
+                                x-text="x01BustMessage"
+                            ></div>
                             <div class="col-span-4 grid grid-cols-6 gap-1">
                                 <button @click="setScore(26)" class="keypad-btn bg-amber-500/20 hover:bg-amber-500/30 text-[8px] font-bold py-1.5 rounded-lg text-amber-200 border border-amber-400/20">26</button>
                                 <button @click="setScore(41)" class="keypad-btn bg-amber-500/20 hover:bg-amber-500/30 text-[8px] font-bold py-1.5 rounded-lg text-amber-200 border border-amber-400/20">41</button>
@@ -306,12 +325,7 @@
             </div>
 
             <!-- Bottom Utility Bar -->
-            <div class="flex justify-between items-center px-3 py-1 border-t border-slate-700 text-xs shrink-0">
-                <template x-if="!isCricketGameMode() && !isBowTieGameMode()">
-                    <button @click="undo()" class="text-slate-400 hover:text-white flex items-center space-x-1">
-                        <span>↩ Undo Last Dart/Turn</span>
-                    </button>
-                </template>
+            <div class="flex justify-end items-center px-3 py-1 border-t border-slate-700 text-xs shrink-0">
                 <span class="text-slate-500">Scoreboard v0.1</span>
             </div>
 
@@ -333,6 +347,7 @@
                 bowTieDarts: [],
                 bowTieRoundInput: '',
                 cricketHitLimitMessage: '',
+                x01BustMessage: '',
                 players: [
                     { name: 'P1', score: 501, history: [], cricketScore: 0, marks: {20:0, 19:0, 18:0, 17:0, 16:0, 15:0, 'B':0}, turnDarts: 0 },
                     { name: 'P2', score: 501, history: [], cricketScore: 0, marks: {20:0, 19:0, 18:0, 17:0, 16:0, 15:0, 'B':0}, turnDarts: 0 }
@@ -594,6 +609,7 @@
                     this.bowTieDarts = [];
                     this.bowTieRoundInput = '';
                     this.screen = 'scoring';
+                    this.x01BustMessage = '';
                     this.undoStack = [this.saveUndoStateSnapshot()];
                 },
 
@@ -620,6 +636,7 @@
                 pressKey(val) {
                     if (val === 'back') {
                         this.currentTurnScore = this.currentTurnScore.slice(0, -1);
+                        this.x01BustMessage = '';
                         return;
                     }
 
@@ -637,6 +654,7 @@
                         if (current === '0' && sanitized === '0') return;
                     }
 
+                    this.x01BustMessage = '';
                     this.currentTurnScore += sanitized;
                 },
 
@@ -673,7 +691,9 @@
                     // Validate Bust rules
                     if (p.score - pts < 0 || p.score - pts === 1) {
                         pts = 0; // Bust
-                        alert("BUST!");
+                        this.x01BustMessage = 'You Busted....use UNDO to correct this if appropriate.';
+                    } else {
+                        this.x01BustMessage = '';
                     }
 
                     this.lastTurn = { player: actingPlayer, pts: pts };
@@ -856,6 +876,7 @@
                     const previous = this.undoStack.pop();
                     this.restoreUndoState(previous);
                     this.cricketHitLimitMessage = '';
+                    this.x01BustMessage = '';
                     if (this.isCricketGameMode()) {
                         this.recalcCricketScores();
                     }
