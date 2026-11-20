@@ -96,7 +96,7 @@
             
             <!-- SCOREBOARD HEADER -->
             <template x-if="!isBowTieGameMode()">
-                <div :class="'grid ' + getPlayerGridClasses() + ' bg-slate-800 border-b border-slate-700 text-center shrink-0'" class="grid grid-cols-2">
+                <div :class="(isX01GameMode() ? 'grid-cols-' + players.length : 'grid ' + getPlayerGridClasses()) + ' bg-slate-800 border-b border-slate-700 text-center shrink-0 grid'" class="grid grid-cols-2">
                     <template x-for="(player, index) in players" :key="index">
                         <div
                             :class="(activePlayer === index ? 'bg-slate-700/80 border-b-4 border-red-500' : 'opacity-70') + (isX01GameMode() ? ' p-1.5' : (isCricketGameMode() ? ' p-2.5' : ' p-3'))"
@@ -129,26 +129,26 @@
 
                 <!-- Cricket Matrix Board -->
                 <template x-if="isCricketGameMode()">
-                    <div class="w-full max-w-md bg-slate-800 rounded-xl overflow-hidden border border-slate-700 text-sm mb-2">
-                        <div class="grid text-center font-bold text-[10px] uppercase tracking-wide bg-slate-700 p-2" :style="'grid-template-columns: repeat(' + players.length + ', minmax(0, 1fr)) 1.2fr'">
+                    <div class="w-full max-w-md bg-slate-800 rounded-xl overflow-hidden border border-slate-700 text-base mb-2">
+                        <div class="grid text-center font-bold text-[22px] uppercase tracking-wide bg-slate-700 p-2" :style="'grid-template-columns: repeat(' + players.length + ', minmax(0, 1fr)) 1.2fr'">
                             <template x-for="(player, index) in players" :key="index">
                                 <div class="px-1"><span x-text="player.name"></span></div>
                             </template>
-                            <div>Target</div>
+                            <div class="text-center">Target</div>
                         </div>
                         <template x-for="target in [20, 19, 18, 17, 16, 15, 'B']">
-                            <div class="grid px-2 py-0.5 text-center border-t border-slate-700 items-center font-mono font-bold gap-1" :style="'grid-template-columns: repeat(' + players.length + ', minmax(0, 1fr)) 1.2fr; transform: scale(0.7); transform-origin: center;'">
+                            <div class="grid px-2 py-0.5 text-center border-t border-slate-700 items-center font-mono font-bold gap-1" :style="'grid-template-columns: repeat(' + players.length + ', minmax(0, 1fr)) 1.2fr'">
                                 <template x-for="(player, index) in players" :key="index">
-                                    <div class="min-h-[24px] flex items-center justify-center text-blue-400">
+                                    <div class="min-h-[30px] flex items-center justify-center text-blue-400 text-[22px]">
                                         <span x-text="renderMarks(player.marks[target])"></span>
                                     </div>
                                 </template>
-                                <div class="flex items-center justify-center gap-1 text-slate-200 bg-slate-900 py-0.5 rounded">
+                                <div class="flex items-center justify-center gap-1 text-slate-200 bg-slate-900 py-0.5 rounded w-full mx-auto text-center">
                                     <template x-if="target !== 'B'">
-                                        <button @click="hitCricket(activePlayer, target, 3)" class="w-5 h-5 bg-slate-700 hover:bg-slate-600 rounded text-[12px]">T</button>
+                                        <button @click="hitCricket(activePlayer, target, 3)" class="w-7 h-7 bg-slate-700 hover:bg-slate-600 rounded text-[24px]">T</button>
                                     </template>
-                                    <button @click="hitCricket(activePlayer, target, 1)" class="w-8 h-6 bg-slate-900 hover:bg-slate-700 rounded text-[14px]" x-text="target"></button>
-                                    <button @click="hitCricket(activePlayer, target, 2)" class="w-5 h-5 bg-slate-700 hover:bg-slate-600 rounded text-[12px]">D</button>
+                                    <button @click="hitCricket(activePlayer, target, 1)" class="w-10 h-8 bg-slate-900 hover:bg-slate-700 rounded text-[26px]" x-text="target"></button>
+                                    <button @click="hitCricket(activePlayer, target, 2)" class="w-7 h-7 bg-slate-700 hover:bg-slate-600 rounded text-[24px]">D</button>
                                 </div>
                             </div>
                         </template>
