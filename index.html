@@ -168,6 +168,21 @@
                     </div>
                 </template>
 
+<!-- Cricket Keypad -->
+                    <template x-if="isCricketGameMode()">
+                        <div class="mb-1">
+                            <div
+                                x-show="cricketHitLimitMessage"
+                                class="w-full text-center text-red-500 font-bold text-xs mb-1"
+                                x-text="cricketHitLimitMessage"
+                            ></div>
+                            <div class="grid grid-cols-2 gap-2">
+                                <button @click="undo()" class="bg-yellow-600 hover:bg-yellow-500 font-bold py-2 rounded-lg text-sm">UNDO</button>
+                                <button @click="submitCricketTurn()" class="bg-green-600 hover:bg-green-500 font-bold py-2 rounded-lg text-sm">ENTER</button>
+                            </div>
+                        </div>
+                    </template>
+
                 <template x-if="isBowTieGameMode()">
                     <div class="w-full max-w-lg bg-slate-800 rounded-xl border border-slate-700 p-2 sm:p-3 text-sm mb-2 mx-auto">
                         <div class="mt-1 text-base leading-5 text-slate-300 flex items-center gap-3 whitespace-nowrap">
@@ -249,14 +264,11 @@
                         </div>
                     </div>
                 </template>
-            </div>
 
-            <!-- KEYPAD CONTROLS -->
-            <div class="compact-keypad bg-slate-800 border-t border-slate-700 p-3 shrink-0">
-                <div class="max-w-md mx-auto">
-                    
-                    <!-- X01 Numeric Keypad -->
-                    <template x-if="isX01GameMode()">
+                <div class="compact-keypad w-full max-w-md mt-1 bg-slate-800/60 border-t border-slate-700 px-1 py-1 rounded-lg shrink-0">
+                    <div class="max-w-md mx-auto">
+<!-- X01 Numeric Keypad -->
+                        <template x-if="isX01GameMode()">
                         <div class="grid grid-cols-4 gap-2 mb-2">
                             <button @click="pressKey('1')" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-base font-bold py-2 rounded-lg">1</button>
                             <button @click="pressKey('2')" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-base font-bold py-2 rounded-lg">2</button>
@@ -289,32 +301,18 @@
 
                         </div>
                     </template>
-
-                    <!-- Cricket Keypad -->
-                    <template x-if="isCricketGameMode()">
-                        <div class="mb-1">
-                            <div
-                                x-show="cricketHitLimitMessage"
-                                class="w-full text-center text-red-500 font-bold text-xs mb-1"
-                                x-text="cricketHitLimitMessage"
-                            ></div>
-                            <div class="grid grid-cols-2 gap-2">
-                                <button @click="undo()" class="bg-yellow-600 hover:bg-yellow-500 font-bold py-2 rounded-lg text-sm">UNDO</button>
-                                <button @click="submitCricketTurn()" class="bg-green-600 hover:bg-green-500 font-bold py-2 rounded-lg text-sm">ENTER</button>
-                            </div>
-                        </div>
-                    </template>
-
-                    <!-- Bottom Utility Bar -->
-                    <div class="flex justify-between items-center mt-1 pt-1 border-t border-slate-700 text-xs">
-                        <template x-if="!isCricketGameMode() && !isBowTieGameMode()">
-                            <button @click="undo()" class="text-slate-400 hover:text-white flex items-center space-x-1">
-                                <span>↩ Undo Last Dart/Turn</span>
-                            </button>
-                        </template>
-                        <span class="text-slate-500">Scoreboard v0.1</span>
                     </div>
                 </div>
+            </div>
+
+            <!-- Bottom Utility Bar -->
+            <div class="flex justify-between items-center px-3 py-1 border-t border-slate-700 text-xs shrink-0">
+                <template x-if="!isCricketGameMode() && !isBowTieGameMode()">
+                    <button @click="undo()" class="text-slate-400 hover:text-white flex items-center space-x-1">
+                        <span>↩ Undo Last Dart/Turn</span>
+                    </button>
+                </template>
+                <span class="text-slate-500">Scoreboard v0.1</span>
             </div>
 
         </div>
