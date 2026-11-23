@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Darts Games Scoreboard — Rules &amp; Game Guide</title>
+    <style>
+        :root {
+            --bg: #0f172a;
+            --surface: #1e293b;
+            --surface-2: #334155;
+            --text: #f1f5f9;
+            --muted: #94a3b8;
+            --accent: #ef4444;
+            --accent-hover: #dc2626;
+            --yellow: #fbbf24;
+            --green: #22c55e;
+        }
+        * { box-sizing: border-box; }
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 0;
+            font-size: 16px;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .wrap { max-width: 700px; margin: 0 auto; padding: 1.5rem 1rem; }
+        header { text-align: center; margin-bottom: 2rem; padding-bottom: 1.5rem; border-bottom: 1px solid var(--surface-2); }
+        h1 { font-size: 1.75rem; margin: 0 0 0.5rem; letter-spacing: -0.02em; }
+        .subtitle { color: var(--muted); font-size: 1rem; }
+        h2 { font-size: 1.3rem; margin: 2rem 0 0.75rem; color: var(--text); border-bottom: 1px solid var(--surface-2); padding-bottom: 0.4rem; }
+        h3 { font-size: 1.1rem; margin: 1.5rem 0 0.5rem; color: var(--yellow); }
+        p { margin: 0 0 1rem; }
+        a { color: var(--yellow); text-decoration: underline; }
+        a:hover { color: #fcd34d; }
+        ul, ol { margin: 0.5rem 0 1rem 1.3rem; }
+        li { margin-bottom: 0.45rem; }
+        strong { color: #fff; }
+        code { background: var(--surface-2); color: #f8fafc; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.85em; padding: 0.15em 0.35em; border-radius: 4px; }
+        pre { background: #0b1120; border: 1px solid var(--surface-2); border-radius: 6px; padding: 0.75rem; overflow-x: auto; margin: 1rem 0; }
+        pre code { background: transparent; color: #e2e8f0; padding: 0; font-size: 0.9em; }
+        blockquote { border-left: 3px solid var(--accent); margin: 1rem 0; padding: 0.5rem 1rem; color: var(--muted); background: rgba(239,68,68,0.06); border-radius: 0 6px 6px 0; }
+        .toc { background: var(--surface); border: 1px solid var(--surface-2); border-radius: 8px; padding: 1rem 1.25rem; margin: 1.5rem 0; }
+        .toc h2 { border: none; margin-top: 0; font-size: 1.1rem; color: var(--yellow); padding-bottom: 0.75rem; border-bottom: 1px solid var(--surface-2); }
+        .toc ol { list-style: decimal; margin-left: 1.2rem; margin-bottom: 0; }
+        .toc li { margin-bottom: 0.35rem; }
+        .toc a { color: var(--text); text-decoration: none; }
+        .toc a:hover { color: var(--yellow); text-decoration: underline; }
+        .badge { display: inline-block; background: var(--accent); color: #fff; font-size: 0.75rem; font-weight: 700; padding: 0.1em 0.5em; border-radius: 10px; margin-left: 0.4em; }
+        .rule-note { background: rgba(251,191,36,0.1); border-left: 3px solid var(--yellow); padding: 0.6rem 1rem; border-radius: 0 6px 6px 0; margin: 1rem 0; }
+        footer { margin-top: 3rem; padding-top: 1.5rem; border-top: 1px solid var(--surface-2); color: var(--muted); font-size: 0.85rem; text-align: center; }
+        @media (max-width: 640px) {
+            .wrap { padding: 1rem 0.75rem; }
+            h1 { font-size: 1.4rem; }
+            h2 { font-size: 1.15rem; }
+            li { font-size: 0.95rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="wrap">
+        <header>
+            <h1>Darts Games Scoreboard</h1>
+            <div class="subtitle">Rules &amp; Game Guide &mdash; X01 &bull; Cricket &bull; BowTie &bull; Shanghai</div>
+        </header>
+
+        <p>A responsive, browser-based darts scoreboard application supporting <strong>X01 Games</strong> (601, 501, 401, 301, 201, 101), <strong>Standard Cricket</strong>, <strong>3-Way Cricket</strong>, <strong>BowTie</strong>, and <strong>Shanghai</strong>. Open <code>index2.html</code> directly in any modern desktop, tablet, or mobile browser to play.</p>
+
+        <div class="toc">
+            <h2>Table of Contents</h2>
+            <ol>
+                <li><a href="#match-setup--navigation">1. Match Setup &amp; Navigation</a></li>
+                <li><a href="#universal-rules">2. Universal Rules &amp; Controls Across All Games</a></li>
+                <li><a href="#x01-games">3. X01 Games (601, 501, 401, 301, 201, 101)</a></li>
+                <li><a href="#standard-cricket">4. Standard Cricket (2 Players)</a></li>
+                <li><a href="#3-way-cricket">5. 3-Way Cricket (3 Players)</a></li>
+                <li><a href="#bowtie">6. BowTie (1&ndash;15 Players)</a></li>
+                <li><a href="#shanghai">7. Shanghai (1&ndash;15 Players)</a></li>
+                <li><a href="#keyboard-shortcuts">8. Keyboard &amp; Input Shortcuts</a></li>
+            </ol>
+        </div>
+
+        <h2 id="match-setup--navigation">1. Match Setup &amp; Navigation</h2>
+
+        <h3>Starting a Match</h3>
+        <ol>
+            <li><strong>Game Mode</strong>: Choose from <strong>601, 501, 401, 301, 201, 101, Standard Cricket, 3-Way Cricket, BowTie,</strong> or <strong>Shanghai</strong>.</li>
+            <li><strong>Player Count Defaults</strong>:
+                <ul>
+                    <li>Selecting an X01 game (601, 501, 401, 301) defaults to <strong>2 Players</strong> (supports 1&ndash;4 players).</li>
+                    <li>Selecting 201 or 101 defaults to <strong>1 Player</strong> (supports 1&ndash;4 players).</li>
+                    <li>Selecting Standard Cricket defaults to <strong>2 Players</strong> (fixed at 2).</li>
+                    <li>Selecting 3-Way Cricket defaults to <strong>3 Players</strong> (fixed at 3).</li>
+                    <li>Selecting BowTie defaults to <strong>2 Players</strong> (supports 1&ndash;15 players).</li>
+                    <li>Selecting Shanghai defaults to <strong>2 Players</strong> (supports 1&ndash;15 players).</li>
+                </ul>
+            </li>
+            <li><strong>Player Name Defaults</strong>:
+                <ul>
+                    <li>Selecting a new <strong>Game Mode</strong> automatically resets player names back to their defaults (<code>P1</code>, <code>P2</code>, <code>P3</code>, etc.).</li>
+                    <li>Players can customize names prior to starting the match.</li>
+                    <li>Names are automatically sanitized to uppercase alphanumeric characters.</li>
+                    <li>Name length limits: up to 5 characters for standard games and BowTie; up to 2 characters for games with more than 6 players.</li>
+                </ul>
+            </li>
+            <li><strong>Starting Mode (X01 Only)</strong>: Choose between <strong>Straight-in</strong> (score counts immediately) and <strong>Double-in</strong> (must hit a double to begin scoring).</li>
+            <li>Select <strong>START MATCH</strong> to begin live scoring.</li>
+        </ol>
+
+        <h3>In-Match Navigation</h3>
+        <ul>
+            <li><strong>Header Title</strong>: Dynamically displays the active game mode and rule set (e.g. <code>501 - Double-in</code> or <code>Shanghai - Round 1 (Target: 1)</code>).</li>
+            <li><strong>HELP Button</strong>: Located in the top header bar next to New Match. Selecting <strong>HELP</strong> opens this guide (<code>README.html</code>) in a new tab for instant access to game rules and match mechanics.</li>
+            <li><strong>New Match</strong>: Located at the top right of the header bar. Selecting <strong>New Match</strong> returns to the setup screen at any time to configure and launch a fresh match.</li>
+            <li><strong>Enhanced High-Visibility Displays</strong>: All scoreboards, target matrices, player cards, average displays, and keypad controls are scaled up by 20% with high-contrast typography for optimal readability across phones, tablets, and large screens.</li>
+        </ul>
+
+        <h2 id="universal-rules">2. Universal Rules &amp; Controls Across All Games</h2>
+
+        <h3>Maximum Turn Score Guard (The 180 Rule)</h3>
+        <ul>
+            <li>In standard darts, the maximum possible score with 3 darts in a single turn is <strong>180</strong> (three Triple 20s).</li>
+            <li>Across all game types (X01, BowTie, etc.), entering any turn score greater than 180 is blocked.</li>
+            <li>The app displays an alert in bold red font:
+                <blockquote>&ldquo;The max score is 180, please correct the score and try ENTER again&rdquo;</blockquote>
+            </li>
+            <li>The entered score is <strong>not</strong> automatically capped or recorded as 180. The user&rsquo;s input remains in the entry field so they can correct it using <code>Del</code> or the keypad and press <code>ENTER</code> again.</li>
+        </ul>
+
+        <h3>Multi-Level Undo</h3>
+        <ul>
+            <li>The <strong>UNDO</strong> button rolls back the most recent completed turn or individual dart action.</li>
+            <li>Undo restores the exact snapshot of scores, marks, round progression, active player, and turn states.</li>
+            <li>Selecting <strong>UNDO</strong> clears any active warning or validation messages.</li>
+        </ul>
+
+        <h2 id="x01-games">3. X01 Games (601, 501, 401, 301, 201, 101)</h2>
+
+        <h3>Objective</h3>
+        <p>Each player begins with the chosen starting score (e.g., 501). Players alternate turns, throwing up to 3 darts per turn, subtracting their turn total from their remaining score until reaching exactly <strong>0</strong>.</p>
+
+        <h3>Rules &amp; Mechanics</h3>
+        <ul>
+            <li><strong>Starting In Rules</strong>:
+                <ul>
+                    <li><strong>Straight-in</strong>: Any dart scores points immediately starting from the first throw.</li>
+                    <li><strong>Double-in</strong>: A player&rsquo;s score does not begin counting down until they hit any double (D1&ndash;D20) or the Double Bull (50). Darts thrown prior to the first double do not score.</li>
+                </ul>
+            </li>
+            <li><strong>Bust Rule</strong>:
+                <ul>
+                    <li>A turn is a <strong>Bust</strong> if the turn score reduces the remaining score below 0 or leaves a remaining score of exactly 1 (since it is impossible to finish on a double with a score of 1).</li>
+                    <li>On a bust, the turn scores 0 points, the player&rsquo;s score reverts to what it was at the start of that turn, and the message <code>&quot;You Busted....use UNDO to correct this if appropriate.&quot;</code> is displayed.</li>
+                </ul>
+            </li>
+            <li><strong>Finishing (Double-Out)</strong>: The final winning dart must land on a <strong>Double</strong> (D1&ndash;D20) or the <strong>Double Bull</strong> (50) to reach exactly 0.</li>
+            <li><strong>Live Checkout Suggestions</strong>:
+                <ul>
+                    <li>For scores of 170 or lower, the app automatically calculates checkout routes, displayed on a single line. When the remaining score is a valid double finish (&le; 50), both the <strong>1-dart (double out)</strong> option and a <strong>2-dart</strong> option are shown; otherwise the best 2-dart and/or 3-dart routes are shown.</li>
+                    <li>Routes prioritize standard tournament doubles (D20, D16, DBull).</li>
+                </ul>
+            </li>
+            <li><strong>Running 3-Dart Average</strong>: The live scoreboard tracks and displays each player&rsquo;s 3-dart running average on their score card.</li>
+        </ul>
+
+        <h3>Keypad &amp; Scoring Controls</h3>
+        <ul>
+            <li><strong>Numeric Keypad (0&ndash;9)</strong>: Enter turn scores directly.</li>
+            <li><strong>Arithmetic Operators (<code>+</code>, <code>*</code>)</strong>: Enter multi-dart formulas, e.g. <code>20*3 + 19</code> or <code>60+60+20</code>.</li>
+            <li><strong>Del</strong>: Deletes the last entered character.</li>
+            <li><strong>MISS</strong>: Quick-enters a score of 0.</li>
+            <li><strong>BUST</strong>: Manually records a bust for the active player.</li>
+            <li><strong>Quick Preset Buttons</strong>: One-tap buttons for common turn scores: <code>26</code>, <code>41</code>, <code>45</code>, <code>60</code>, <code>81</code>, and <code>100</code>.</li>
+            <li><strong>ENTER</strong>: Submits the turn, applies bust checks and the max score guard (&gt; 180), and advances to the next player.</li>
+        </ul>
+
+        <h2 id="standard-cricket">4. Standard Cricket (2 Players)</h2>
+
+        <h3>Objective</h3>
+        <p>Close all designated targets and accumulate a point total equal to or higher than the opponent. The first player to close all targets with equal or greater points wins the match.</p>
+
+        <h3>Targets &amp; Markings</h3>
+        <p>The 7 active targets are <strong>20, 19, 18, 17, 16, 15, and Bullseye (B)</strong>.</p>
+        <ul>
+            <li><strong>Single Hit</strong>: 1 mark (<code>/</code>)</li>
+            <li><strong>Double Hit (D)</strong>: 2 marks (<code>X</code>)</li>
+            <li><strong>Triple Hit (T)</strong>: 3 marks (<code>⨷</code> &mdash; closed)</li>
+            <li><strong>Single Bull (outer)</strong>: 1 mark</li>
+            <li><strong>Double Bull (inner)</strong>: 2 marks (Double hit)</li>
+        </ul>
+
+        <h3>Scoring Points &amp; Permanent Score Rule</h3>
+        <ul>
+            <li>A target is <strong>closed</strong> for a player once they earn <strong>3 marks</strong>.</li>
+            <li>Once a player has closed a target, any subsequent hits they land on that target award points (face value per mark; Bull awards 25 points per mark) <strong>as long as the opponent has not closed it</strong>.</li>
+            <li><strong>Permanent Score Guarantee</strong>: Points earned on open targets are <strong>permanently kept</strong>. When an opponent subsequently closes that target, the first player stops earning <em>new</em> points on it, but their previously scored points are <strong>never</strong> wiped out or reset to zero. Scores are only adjusted if <strong>UNDO</strong> is clicked.</li>
+        </ul>
+
+        <h3>Closed-for-Game Rule</h3>
+        <ul>
+            <li>A target becomes <strong>closed for the game</strong> when <strong>both players have earned 3 or more marks on it</strong>.</li>
+            <li>Once closed for the game, neither player can score points on that number.</li>
+            <li>If a player clicks on a target that has already been closed for the game:
+                <ul>
+                    <li>The click does <strong>not</strong> count as a dart (turn darts do not increment).</li>
+                    <li>No marks or scores are altered.</li>
+                    <li>A red notification appears directly above UNDO and ENTER:
+                        <blockquote>&ldquo;# is already closed, select UNDO or ENTER or another number to continue&rdquo;</blockquote>
+                    </li>
+                    <li>Selecting <strong>UNDO</strong>, <strong>ENTER</strong>, or any unclosed target dismisses the message.</li>
+                </ul>
+            </li>
+        </ul>
+
+        <h3>Turn Entry &amp; Controls</h3>
+        <ul>
+            <li>Up to 3 darts may be recorded per turn. If a player attempts a 4th hit, the app prompts: <code>&quot;3 dart hits recorded, click on UNDO or ENTER to continue&quot;</code>.</li>
+            <li>Use the <strong>T</strong> (Triple), <strong>Target</strong> (Single), and <strong>D</strong> (Double) buttons in each target row to record hits.</li>
+            <li><strong>UNDO</strong>: Reverts the last recorded hit and its associated points.</li>
+            <li><strong>ENTER</strong>: Finalizes the 3-dart turn and passes the turn to the next player.</li>
+            <li>The alert line reserves spacing (<code>&nbsp;</code>) so the UNDO and ENTER buttons remain large and never squish under the board.</li>
+        </ul>
+
+        <h2 id="3-way-cricket">5. 3-Way Cricket (3 Players)</h2>
+
+        <h3>Objective</h3>
+        <p>A 3-player version of Cricket using the same targets (20, 19, 18, 17, 16, 15, and Bull). Players race to close all targets while accumulating the highest score.</p>
+
+        <h3>Rules &amp; Mechanics</h3>
+        <ul>
+            <li><strong>Marks &amp; Closing</strong>: Each player earns marks individually (1 = <code>/</code>, 2 = <code>X</code>, 3 = <code>⨷</code>). A target is closed for a player once they accumulate 3 marks.</li>
+            <li><strong>Scoring Points (Exclusive Closer Rule)</strong>:
+                <ul>
+                    <li><strong>When a player has closed a number target, other players can NOT score on that same target</strong>.</li>
+                    <li>A player can only score points for additional marks beyond 3 if <strong>no other player has closed that target</strong> (both opponents have &lt; 3 marks).</li>
+                    <li>Once any opponent closes that target, no player can score further points on it.</li>
+                    <li>Points once earned remain permanently in the player&rsquo;s total and are never wiped out or reduced when another player closes the target later.</li>
+                </ul>
+            </li>
+            <li><strong>Closed-for-Game &amp; Dart Protection</strong>:
+                <ul>
+                    <li>A target is closed for scoring once another player has closed it. If a player already has 3 marks on a target and can no longer score points on it (or when all three players have closed it), clicking on that target does <strong>not</strong> count as a dart and displays:
+                        <blockquote>&ldquo;# is already closed, select UNDO or ENTER or another number to continue&rdquo;</blockquote>
+                    </li>
+                    <li>Any player who has not yet closed the target (&lt; 3 marks) can still hit it to earn marks toward closing that target on their board.</li>
+                </ul>
+            </li>
+            <li><strong>Winning</strong>: The game ends when all targets are closed by all players (or when the leader has closed all numbers with the highest score). The player with the highest total points wins.</li>
+        </ul>
+
+        <h2 id="bowtie">6. BowTie (1&ndash;15 Players)</h2>
+
+        <h3>Objective</h3>
+        <p>Navigate through a sequence of <strong>12 specific target rounds</strong>. Players aim to maximize their score while avoiding the <strong>Halving Penalty</strong>.</p>
+
+        <h3>The 12-Round Sequence</h3>
+        <ol>
+            <li><strong>Free</strong>: Any dart that hits the board scores face value. If no dart hits a scoring segment, the player&rsquo;s score is halved.</li>
+            <li><strong>20</strong>: Only hits on segment 20 (single, double, or treble) score points.</li>
+            <li><strong>19</strong>: Only hits on segment 19 score points.</li>
+            <li><strong>Treble (T)</strong>: Any treble segment scores points. The entered round total <strong>must be divisible by 3</strong>.</li>
+            <li><strong>18</strong>: Only hits on segment 18 score points.</li>
+            <li><strong>17</strong>: Only hits on segment 17 score points.</li>
+            <li><strong>Double (D)</strong>: Any double segment scores points. The entered round total <strong>must be divisible by 2</strong>.</li>
+            <li><strong>16</strong>: Only hits on segment 16 score points.</li>
+            <li><strong>15</strong>: Only hits on segment 15 score points.</li>
+            <li><strong>3 Color</strong>: A valid multi-color round score must be entered.</li>
+            <li><strong>BowTie (BT)</strong>: Valid BowTie round hits score points.</li>
+            <li><strong>Bull (B)</strong>: Single Bull scores 25 points; Double Bull scores 50 points.</li>
+        </ol>
+        <h3>The Halving Penalty</h3>
+        <ul>
+            <li>If a player fails to make a qualifying hit during a round (or scores 0 points), their accumulated score is <strong>cut in half</strong>.</li>
+            <li><strong>Odd Number Adjustment</strong>: If a player&rsquo;s score is an odd number when halved, it is rounded up before halving so the score remains an integer (for example, a score of <code>41</code> becomes <code>21</code>).</li>
+        </ul>
+
+        <h3>Controls &amp; Input</h3>
+        <ul>
+            <li><strong>Active Round Indicator</strong>: The current round is highlighted in red on the left-hand TARGETS list.</li>
+            <li><strong>Target Quick-Add</strong>: Clicking buttons 20&ndash;15 or Bull in the left targets list automatically appends the target value to the round input.</li>
+            <li><strong>Score for Round Input</strong>: Enter scores as total points (e.g. <code>60</code>), space/comma separated hits (<code>20 20 18</code>), or multiplication expressions (<code>20*3</code>).</li>
+            <li><strong>Numeric Keypad</strong>:
+                <ul>
+                    <li>Standard 0&ndash;9 keypad with arithmetic operators (<code>+</code>, <code>×</code>).</li>
+                    <li>Column 4 contains <strong>Del</strong> (Row 1), <strong>CLEAR</strong> (Row 2), and <strong>UNDO</strong> (Row 3).</li>
+                    <li>Redundant UNDO buttons next to ENTER have been eliminated, providing a clean, full-width <strong>ENTER</strong> button.</li>
+                </ul>
+            </li>
+            <li><strong>Max Score Limit</strong>: Scores &gt; 180 are rejected with <code>&quot;The max score is 180, please correct the score and try ENTER again&quot;</code>.</li>
+            <li><strong>Winning</strong>: After all players have completed Round 12 (Bull), the player with the highest overall BowTie score is declared the winner.</li>
+        </ul>
+
+        <h2 id="shanghai">7. Shanghai (1&ndash;15 Players)</h2>
+
+        <h3>Objective</h3>
+        <p>Shanghai is a fast-paced dart game where players throw three darts per round at a single target number, moving sequentially from 1 through 10. You can win either by having the highest total score at the end of the final round, or by ending the game immediately with an instant-win &ldquo;Shanghai&rdquo; on any single turn.</p>
+
+        <h3>Setup &amp; Objective</h3>
+        <ul>
+            <li><strong>Players</strong>: 1&ndash;15.</li>
+            <li><strong>Targets</strong>: Numbers 1 through 10, played in numerical order (Round 1 is 1s, Round 2 is 2s, up to Round 10).</li>
+            <li><strong>Goal</strong>: Score the most points by the end of the final round, or end the game immediately by hitting a Shanghai.</li>
+        </ul>
+
+        <h3>Throw at the Target Number</h3>
+        <p>On your turn, all three darts must be aimed at the active number for that round. Only darts that land in the active number count toward your score. Any darts hitting other numbers or missing the board score 0.</p>
+        <ul>
+            <li><strong>Single</strong>: Face value of the number (e.g., Single 5 = 5 points).</li>
+            <li><strong>Double</strong>: 2&times; the number (e.g., Double 5 = 10 points).</li>
+            <li><strong>Triple</strong>: 3&times; the number (e.g., Triple 5 = 15 points).</li>
+        </ul>
+        <div class="rule-note">
+            <strong>Multi-hit allowed:</strong> Each scoring button (Single, Double, Triple) may be hit more than once per turn &mdash; for example, a player can record three Triples of the round number in a single three-dart turn.
+        </div>
+
+        <h3>Instant Win (&ldquo;Shanghai&rdquo;)</h3>
+        <p>If a player hits a Single, a Double, and a Triple of the round&rsquo;s active number in a single three-dart turn (in any order), they immediately win the game &mdash; regardless of how far behind they are in points.</p>
+
+        <h3>Penalties (Zero-Score Turns)</h3>
+        <p>If a player misses the target and scores 0 for the round:</p>
+        <ul>
+            <li><strong>Miss Target 3</strong>: the player&rsquo;s score goes to zero.</li>
+            <li><strong>Miss Target 5</strong>: the player&rsquo;s score is cut in half (rounded up if odd before halving).</li>
+            <li><strong>Miss Target 8</strong>: the player is eliminated &mdash; skip this player for targets 9 and 10.</li>
+        </ul>
+
+        <h3>Winning</h3>
+        <ul>
+            <li>The game ends after Round 10; the surviving player with the highest total score wins.</li>
+            <li>A Shanghai instant win ends the game immediately, no matter the scores.</li>
+        </ul>
+
+        <h2 id="keyboard-shortcuts">8. Keyboard &amp; Input Shortcuts</h2>
+
+        <ul>
+            <li><strong>Enter Key</strong>: Submits the current turn in X01, Cricket, BowTie, or Shanghai.</li>
+            <li><strong>Backspace</strong>: Deletes the last character in the active input field.</li>
+            <li><strong>Numbers (0&ndash;9)</strong>: Enters values into the score expression or input box.</li>
+            <li><strong>`<code>+</code>` / `<code>*</code>` / `x`</strong>: Enters addition or multiplication into score calculations.</li>
+            <li><strong>Touch / Mobile Optimization</strong>: Interactive elements feature active press scaling (<code>transform: scale(0.95)</code>), <code>touch-action: manipulation</code> for rapid tap response, and zero browser overscroll.</li>
+        </ul>
+
+        <footer>
+            Darts Games Scoreboard &mdash; Rules &amp; Game Guide. Companion to <code>index2.html</code>. Generate this page from <code>README.md</code>.
+        </footer>
+    </div>
+</body>
+</html>
+

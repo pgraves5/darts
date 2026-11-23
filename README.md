@@ -1,122 +1,224 @@
-# Darts Games App
+# Darts Games Scoreboard
 
-A responsive browser-based darts scoreboard for X01, Standard Cricket, 3-Way Cricket, and BowTie. Open `index2.html` in a browser to use it.
+A responsive, browser-based darts scoreboard application supporting **X01 Games** (601, 501, 401, 301, 201, 101), **Standard Cricket**, **3-Way Cricket**, **BowTie**, and **Shanghai**. Open `index2.html` directly in any modern desktop, tablet, or mobile browser to play.
 
-## Starting a Match
+---
 
-1. Select a game mode.
-2. Select the number of players.
-3. Enter player names:
-   - X01 and BowTie support the configured player limits.
-   - Standard Cricket supports 2 players.
-   - 3-Way Cricket supports 3 players.
-   - BowTie player names are limited to 5 characters.
-4. Select **START MATCH**.
+## Table of Contents
+1. [Match Setup & Navigation](#match-setup--navigation)
+2. [Universal Rules & Controls Across All Games](#universal-rules--controls-across-all-games)
+3. [X01 Games](#x01-games-601-501-401-301-201-101)
+4. [Standard Cricket](#standard-cricket-2-players)
+5. [3-Way Cricket](#3-way-cricket-3-players)
+6. [BowTie](#bowtie-1-15-players)
+7. [Shanghai](#shanghai-1-15-players)
+8. [Keyboard & Input Shortcuts](#keyboard--input-shortcuts)
 
-Use **New Match** to return to setup or **Menu** to leave the live scoreboard.
+---
 
-## X01 Games
+## Match Setup & Navigation
 
-Available X01 games: 601, 501, 401, 301, 201, and 101.
+### Starting a Match
+1. **Game Mode**: Choose from **601, 501, 401, 301, 201, 101, Standard Cricket, 3-Way Cricket,** or **BowTie**.
+2. **Player Count Defaults**:
+   - Selecting an X01 game (601, 501, 401, 301) defaults to **2 Players** (supports 1–4 players).
+   - Selecting 201 or 101 defaults to **1 Player** (supports 1–4 players).
+   - Selecting Standard Cricket defaults to **2 Players** (fixed at 2).
+   - Selecting 3-Way Cricket defaults to **3 Players** (fixed at 3).
+   - Selecting BowTie defaults to **2 Players** (supports 1–15 players).
+3. **Player Name Defaults**:
+   - Selecting a new **Game Mode** automatically resets player names back to their defaults (`P1`, `P2`, `P3`, etc.).
+   - Players can customize names prior to starting the match.
+   - Names are automatically sanitized to uppercase alphanumeric characters.
+   - Name length limits: Up to 5 characters for standard games and BowTie; up to 2 characters for games with more than 6 players.
+4. **Starting Mode (X01 Only)**: Choose between **Straight-in** (score counts immediately) and **Double-in** (must hit a double to begin scoring).
+5. Select **START MATCH** to begin live scoring.
+
+### In-Match Navigation
+- **Header Title**: Dynamically displays the active game mode and rule set (e.g. `501 - Double-in` or `BowTie`).
+- **HELP Button**: Located in the top header bar next to New Match. Selecting **HELP** opens this `README.md` file in a new tab for instant access to game rules, keyboard shortcuts, and match mechanics.
+- **New Match**: Located at the top right of the header bar. Selecting **New Match** returns to the setup screen at any time to configure and launch a fresh match.
+- **Enhanced High-Visibility Displays**: All scoreboards, target matrices, player cards, average displays, and keypad controls are scaled up by 20% with high-contrast typography for optimal readability across phones, tablets, and large screens.
+
+---
+
+## Universal Rules & Controls Across All Games
+
+### Maximum Turn Score Guard (The 180 Rule)
+- In standard darts, the maximum possible score with 3 darts in a single turn is **180** (three Triple 20s).
+- Across all game types (X01, BowTie, etc.), entering any turn score greater than 180 is blocked.
+- The app displays an alert in bold red font:
+  > **"The max score is 180, please correct the score and try ENTER again"**
+- The entered score is **not** automatically capped or recorded as 180. The user's input remains in the entry field so they can correct it using `Del` or the keypad and press `ENTER` again.
+
+### Multi-Level Undo
+- The **UNDO** button rolls back the most recent completed turn or individual dart action.
+- Undo restores the exact snapshot of scores, marks, round progression, active player, and turn states.
+- Selecting **UNDO** clears any active warning or validation messages.
+
+---
+
+## X01 Games (601, 501, 401, 301, 201, 101)
 
 ### Objective
+Each player begins with the chosen starting score (e.g., 501). Players alternate turns, throwing up to 3 darts per turn, subtracting their turn total from their remaining score until reaching exactly **0**.
 
-Each player starts with the selected score. Players alternate turns and subtract their turn score until they reach exactly zero.
+### Rules & Mechanics
+- **Starting In Rules**:
+  - **Straight-in**: Any dart scores points immediately starting from the first throw.
+  - **Double-in**: A player's score does not begin counting down until they hit any double (D1–D20) or the Double Bull (50). Darts thrown prior to the first double do not score.
+- **Bust Rule**:
+  - A turn is a **Bust** if the turn score reduces the remaining score below 0 or leaves a remaining score of exactly 1 (since it is impossible to finish on a double with a score of 1).
+  - On a bust, the turn scores 0 points, the player's score reverts to what it was at the start of that turn, and the message `"You Busted....use UNDO to correct this if appropriate."` is displayed.
+- **Finishing (Double-Out)**:
+  - The final winning dart must land on a **Double** (D1–D20) or the **Double Bull** (50) to reach exactly 0.
+- **Live Checkout Suggestions**:
+  - For scores of 170 or lower, the app automatically calculates checkout routes, displayed on a single line. When the remaining score is a valid double finish (≤ 50), both the 1-dart (double out) option and a 2-dart option are shown; otherwise the best 2-dart and/or 3-dart routes are shown. Routes prioritize standard tournament doubles (D20, D16, DBull).
+- **Running 3-Dart Average**:
+  - The live scoreboard tracks and displays each player's 3-dart running average on their score card.
 
-### Rules
+### Keypad & Scoring Controls
+- **Numeric Keypad (0–9)**: Enter turn scores directly.
+- **Arithmetic Operators (`+`, `*`)**: Enter multi-dart formulas, e.g. `20*3 + 19` or `60+60+20`.
+- **Del**: Deletes the last entered character.
+- **MISS**: Quick-enters a score of 0.
+- **BUST**: Manually records a bust for the active player.
+- **Quick Preset Buttons**: One-tap buttons for common turn scores: `26`, `41`, `45`, `60`, `81`, and `100`.
+- **ENTER**: Submits the turn, applies bust checks and the max score guard (> 180), and advances to the next player.
 
-- X01 supports 1–4 players.
-- 601, 501, 401, and 301 default to 2 players.
-- 201 and 101 default to 1 player.
-- A turn consists of up to three darts.
-- Enter a turn as a score or a calculation using `+` and `*`, for example `60+40+20` or `20*3`.
-- A score that leaves the player at 1 or below 0 is a bust. The turn scores zero and the player stays at the score from the start of the turn.
-- The final dart must finish on a double or the Bull, with Bull counting as 50 and the outer Bull counting as 25.
-- The app provides 2-dart and 3-dart checkout suggestions.
+---
 
-## Standard Cricket
+## Standard Cricket (2 Players)
 
-Standard Cricket is for 2 players.
+### Objective
+Close all designated targets and accumulate a point total equal to or higher than the opponent. The first player to close all targets with equal or greater points wins the match.
 
-### Objectives and Targets
+### Targets & Markings
+The 7 active targets are **20, 19, 18, 17, 16, 15, and Bullseye (B)**.
+- **Single Hit**: 1 mark (`/`)
+- **Double Hit (D)**: 2 marks (`X`)
+- **Triple Hit (T)**: 3 marks (`⨷` - closed)
+- **Single Bull (outer)**: 1 mark
+- **Double Bull (inner)**: 2 marks (Double hit)
 
-The targets are 20, 19, 18, 17, 16, 15, and Bull.
+### Scoring Points & Permanent Score Rule
+- A target is **closed** for a player once they earn **3 marks**.
+- Once a player has closed a target, any subsequent hits they land on that target award points (face value per mark; Bull awards 25 points per mark) **as long as the opponent has not closed it**.
+- **Permanent Score Guarantee**: Points earned on open targets are **permanently kept**. When an opponent subsequently closes that target, the first player stops earning *new* points on it, but their previously scored points are **never** wiped out or reset to zero. Scores are only adjusted if **UNDO** is clicked.
 
-- Single hit: 1 mark
-- Double hit: 2 marks
-- Treble hit: 3 marks
+### Closed-for-Game Rule
+- A target becomes **closed for the game** when **both players have earned 3 or more marks on it**.
+- Once closed for the game, neither player can score points on that number.
+- If a player clicks on a target that has already been closed for the game:
+  - The click does **not** count as a dart (turn darts do not increment).
+  - No marks or scores are altered.
+  - A red notification appears directly above UNDO and ENTER:
+    > **"# is already closed, select UNDO or ENTER or another number to continue"**
+  - Selecting **UNDO**, **ENTER**, or any unclosed target dismisses the message.
 
-A player closes a target after earning 3 marks.
+### Turn Entry & Controls
+- Up to 3 darts may be recorded per turn. If a player attempts a 4th hit, the app prompts: `"3 dart hits recorded, click on UNDO or ENTER to continue"`.
+- Use the **T** (Triple), **Target** (Single), and **D** (Double) buttons in each target row to record hits.
+- **UNDO**: Reverts the last recorded hit and its associated points.
+- **ENTER**: Finalizes the 3-dart turn and passes the turn to the next player.
+- The alert line reserves spacing (`\u00A0`) so the UNDO and ENTER buttons remain large and never squish under the board.
 
-### Scoring
+---
 
-- Hit a closed target for points after the opponent has not closed it.
-- 20–15 score their own value per extra hit.
-- Bull scores 25 per hit.
-- A target is not worth points once both players have closed it.
+## 3-Way Cricket (3 Players)
 
-The turn advances through the **ENTER** control. **UNDO** rolls back the previous action.
+### Objective
+A 3-player version of Cricket using the same targets (20, 19, 18, 17, 16, 15, and Bull). Players race to close all targets while accumulating the highest score.
 
-## 3-Way Cricket
+### Rules & Mechanics
+- **Marks & Closing**: Each player earns marks individually (1 = `/`, 2 = `X`, 3 = `⨷`). A target is closed for a player once they accumulate 3 marks.
+- **Scoring Points (Exclusive Closer Rule)**:
+  - **When a player has closed a number target, other players can NOT score on that same target**.
+  - A player can only score points for additional marks beyond 3 if **no other player has closed that target** (both opponents have $< 3$ marks).
+  - Once any opponent closes that target, no player can score further points on it.
+  - Points once earned remain permanently in the player's total and are never wiped out or reduced when another player closes the target later.
+- **Closed-for-Game & Dart Protection**:
+  - A target is closed for scoring once another player has closed it. If a player already has 3 marks on a target and can no longer score points on it (or when all three players have closed it), clicking on that target does **not** count as a dart and displays:
+    > **"# is already closed, select UNDO or ENTER or another number to continue"**
+  - Any player who has not yet closed the target ($< 3$ marks) can still hit it to earn marks toward closing that target on their board.
+- **Winning**: The game ends when all targets are closed by all players (or when the leader has closed all numbers with the highest score). The player with the highest total points wins.
 
-3-Way Cricket uses the same targets and closing system as Standard Cricket, but allows 3 players.
+---
 
-### Rules
+## BowTie (1–15 Players)
 
-- Each player can close targets by earning 3 marks.
-- When a player scores extra marks on an open target, those marks produce points.
-- Opponents score normally only when they have not closed the target.
-- Extra marks on Bull count as 25 points per mark.
-- The player with the highest score after the game is complete wins.
+### Objective
+Navigate through a sequence of **12 specific target rounds**. Players aim to maximize their score while avoiding the **Halving Penalty**.
 
-Use the target and T/D controls in the cricket tracking board to enter marks.
+### The 12-Round Sequence
+1. **Free**: Any dart that hits the board scores face value. If no dart hits a scoring segment, the player's score is halved.
+2. **20**: Only hits on segment 20 (single, double, or treble) score points.
+3. **19**: Only hits on segment 19 score points.
+4. **Treble (T)**: Any treble segment scores points. The entered round total **must be divisible by 3**.
+5. **18**: Only hits on segment 18 score points.
+6. **17**: Only hits on segment 17 score points.
+7. **Double (D)**: Any double segment scores points. The entered round total **must be divisible by 2**.
+8. **16**: Only hits on segment 16 score points.
+9. **15**: Only hits on segment 15 score points.
+10. **3 Color**: A valid multi-color round score must be entered.
+11. **BowTie (BT)**: Valid BowTie round hits score points.
+12. **Bull (B)**: Single Bull scores 25 points; Double Bull scores 50 points.
 
-## BowTie
+### The Halving Penalty
+- If a player fails to make a qualifying hit during a round (or scores 0 points), their accumulated score is **cut in half**.
+- **Odd Number Adjustment**: If a player's score is an odd number when halved, it is rounded up before halving so the score remains an integer (for example, a score of `41` becomes `21`).
 
-BowTie supports 1–15 players and uses a 12-round target sequence.
+### Controls & Input
+- **Active Round Indicator**: The current round is highlighted in red on the left-hand TARGETS list.
+- **Target Quick-Add**: Clicking buttons 20–15 or Bull in the left targets list automatically appends the target value to the round input.
+- **Score for Round Input**: Enter scores as total points (e.g. `60`), space/comma separated hits (`20 20 18`), or multiplication expressions (`20*3`).
+- **Numeric Keypad**:
+  - Standard 0–9 keypad with arithmetic operators (`+`, `×`).
+  - Column 4 contains **Del** (Row 1), **CLEAR** (Row 2), and **UNDO** (Row 3).
+  - Redundant UNDO buttons next to ENTER have been eliminated, providing a clean, full-width **ENTER** button.
+- **Max Score Limit**: Scores $> 180$ are rejected with `"The max score is 180, please correct the score and try ENTER again"`.
+- **Winning**: After all players have completed Round 12 (Bull), the player with the highest overall BowTie score is declared the winner.
 
-### Round Sequence
+---
 
-1. Free
-2. 20
-3. 19
-4. Treble
-5. 18
-6. 17
-7. Double
-8. 16
-9. 15
-10. 3 Color
-11. BowTie
-12. Bull
+## Shanghai (1–15 Players)
 
-### Turn Entry
+### Objective
+Shanghai is a fast-paced dart game where players throw three darts per round at a single target number, moving sequentially from 1 through 10. You can win either by having the highest total score at the end of the final round, or by ending the game immediately with an instant-win "Shanghai" on any single turn.
 
-- The active player is shown in red.
-- The target round is highlighted in red in the target list.
-- Enter scores in the **Score for round** field.
-- The 20–15 and Bull targets add values to the field when selected.
-- Select **ENTER** to submit the player's 3-dart turn.
-- Select **CLEAR** to clear the entered round.
-- Select **UNDO** to restore the previous completed turn.
+### Setup & Objective
+- **Players**: 1–15.
+- **Targets**: Numbers 1 through 10, played in numerical order (Round 1 is 1s, Round 2 is 2s, up to Round 10).
+- **Goal**: Score the most points by the end of the final round, or end the game immediately by hitting a Shanghai.
 
-### Scoring Rules
+### Throw at the Target Number
+On your turn, all three darts must be aimed at the active number for that round. Only darts that land in the active number count toward your score. Any darts hitting other numbers or missing the board score 0.
 
-- **Free:** Any hits score. If no dart scores, halve the player's score.
-- **20 / 19 / 18 / 17 / 16 / 15:** Only hits on the displayed target count. If no required hit is made, halve the player's score.
-- **Treble:** Entered round total must be divisible by 3. Otherwise, halve the player's score.
-- **Double:** Entered round total must be divisible by 2. Otherwise, halve the player's score.
-- **3 Color:** Enter the score for the round. A valid positive total is added; a zero/empty round causes halving.
-- **BowTie:** Enter the score for the round. A valid positive total is added; a zero/empty round causes halving.
-- **Bull:** Outer Bull is 25 and inner Bull is 50. If no Bull is hit, halve the player's score.
+- **Single**: Face value of the number (e.g., Single 5 = 5 points).
+- **Double**: 2× the number (e.g., Double 5 = 10 points).
+- **Triple**: 3× the number (e.g., Triple 5 = 15 points).
 
-### Halving Penalty
+Each scoring button (Single, Double, Triple) may be hit more than once per turn — for example, a player can record three Triples of the round number in a single three-dart turn.
 
-If a player misses the round requirement, their current total is cut in half:
+### Instant Win ("Shanghai")
+If a player hits a Single, a Double, and a Triple of the round's active number in a single three-dart turn (in any order), they immediately win the game — regardless of how far behind they are in points.
 
-- Odd totals are adjusted before halving so the result remains a whole number.
-- For example, 41 becomes 21.
+### Penalties (Zero-Score Turns)
+If a player misses the target and scores 0 for the round:
+- **Miss Target 3**: the player's score goes to zero.
+- **Miss Target 5**: the player's score is cut in half (rounded up if odd before halving).
+- **Miss Target 8**: the player is eliminated — skip this player for targets 9 and 10.
 
 ### Winning
+- The game ends after Round 10; the surviving player with the highest total score wins.
+- A Shanghai instant win ends the game immediately, no matter the scores.
 
-Each player completes every round. After the final Bull round, the player with the highest BowTie score wins.
+---
+
+## Keyboard & Input Shortcuts
+
+- **Enter Key**: Submits the current turn in X01, Cricket, or BowTie.
+- **Backspace**: Deletes the last character in the active input field.
+- **Numbers (0–9)**: Enters values into the score expression or input box.
+- **`+` / `*` / `x`**: Enters addition or multiplication into score calculations.
+- **Touch / Mobile Optimization**: Interactive elements feature active press scaling (`transform: scale(0.95)`), `touch-action: manipulation` for rapid tap response, and zero browser overscroll.

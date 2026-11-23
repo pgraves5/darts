@@ -60,14 +60,14 @@
          ======================================================================== -->
     <header class="bg-slate-800 border-b border-slate-700 px-4 py-2.5 flex justify-between items-center shrink-0">
         <div class="flex items-center space-x-3">
-            <!-- Dynamic title: Shows mode and starting rules for X01, or game name for Cricket/BowTie (scaled by 20%) -->
-            <h1 class="text-xl font-bold truncate" x-text="isX01GameMode() ? gameMode + ' - ' + startingMode : gameMode"></h1>
+            <!-- Dynamic title: Shows mode and starting rules for X01, or game name for Cricket/BowTie/Shanghai (scaled by 20%) -->
+            <h1 class="text-xl font-bold truncate" x-text="isX01GameMode() ? '🎯 ' + gameMode + ' - ' + startingMode : (isShanghaiGameMode() ? '🎯 Shanghai - Round ' + (shanghaiRoundIndex + 1) + ' (Target: ' + (shanghaiRoundIndex + 1) + ')' : '🎯 ' + gameMode)"></h1>
         </div>
         <div class="flex items-center space-x-2">
-            <!-- HELP Button: Opens README.md located in the same directory as this HTML file -->
-            <a href="README.md" target="_blank" rel="noopener noreferrer" class="bg-slate-700 hover:bg-slate-600 text-sm px-3.5 py-1.5 rounded font-bold transition-colors flex items-center justify-center text-white no-underline border border-slate-600 shadow">HELP</a>
             <!-- New Match Button: Navigates back to setup/menu screen to start a fresh game -->
             <button @click="resetMatch()" class="bg-blue-600 hover:bg-blue-500 text-sm px-3.5 py-1.5 rounded font-bold transition-colors shadow">New Match</button>
+            <!-- HELP Button: Opens README.md located in the same directory as this HTML file -->
+            <a href="README.html" target="_blank" rel="noopener noreferrer" class="bg-slate-700 hover:bg-slate-600 text-sm px-3.5 py-1.5 rounded font-bold transition-colors flex items-center justify-center text-white no-underline border border-slate-600 shadow">HELP</a>
         </div>
     </header>
 
@@ -85,7 +85,7 @@
         <div x-show="screen === 'menu'" class="mobile-menu absolute inset-0 bg-slate-900 z-20 p-6 flex flex-col justify-center max-w-md mx-auto w-full overflow-y-auto">
             <h2 class="text-2xl font-black mb-6 text-center text-red-500 tracking-wider">DART GAMES</h2>
             
-            <!-- Game Mode Selector: X01 (101-601), Standard Cricket, 3-Way Cricket, BowTie -->
+            <!-- Game Mode Selector: X01 (101-601), Standard Cricket, 3-Way Cricket, BowTie, Shanghai -->
             <label class="text-sm text-slate-400 mb-1">Game Mode</label>
             <select x-model="gameMode" @change="handleGameModeChange()" class="bg-slate-800 border border-slate-700 rounded p-3 mb-4 text-white font-bold focus:border-red-500 outline-none">
                 <option value="601">601</option>
@@ -97,6 +97,7 @@
                 <option value="Cricket">Standard Cricket</option>
                 <option value="3-Way Cricket">3-Way Cricket</option>
                 <option value="BowTie">BowTie</option>
+                <option value="Shanghai">Shanghai</option>
             </select>
 
             <!-- Starting Mode Selector (Straight-in vs Double-in) for X01 game modes -->
@@ -110,8 +111,8 @@
                 </div>
             </template>
 
-            <!-- Player Count Selector for games supporting variable counts (X01: 1-4, BowTie: 1-15) -->
-            <template x-if="isX01GameMode() || isBowTieGameMode()">
+            <!-- Player Count Selector for games supporting variable counts (X01: 1-4, BowTie: 1-15, Shanghai: 1-15) -->
+            <template x-if="isX01GameMode() || isBowTieGameMode() || isShanghaiGameMode()">
                 <div>
                     <label class="text-sm text-slate-400 mb-1">Players</label>
                     <select x-model="playerCount" @change="setupPlayerNames(false)" class="bg-slate-800 border border-slate-700 rounded p-3 mb-4 text-white font-bold w-full focus:border-red-500 outline-none">
@@ -150,8 +151,8 @@
              ==================================================================== -->
         <div x-show="screen === 'scoring'" class="flex-1 flex flex-col h-full overflow-hidden">
             
-            <!-- SCOREBOARD HEADER (Used for X01 and Cricket games; BowTie uses custom cards; scaled 20%) -->
-            <template x-if="!isBowTieGameMode()">
+            <!-- SCOREBOARD HEADER (Used for X01 and Cricket games; BowTie and Shanghai use custom layouts; scaled 20%) -->
+            <template x-if="!isBowTieGameMode() && !isShanghaiGameMode()">
                 <div :class="(isX01GameMode() ? 'grid-cols-' + players.length : 'grid ' + getPlayerGridClasses()) + ' bg-slate-800 border-b border-slate-700 text-center shrink-0 grid'" class="grid grid-cols-2">
                     <template x-for="(player, index) in players" :key="index">
                         <div
@@ -178,12 +179,8 @@
                      Suggests optimal 2-dart and 3-dart double-finish routes for remaining score <= 170 -->
                 <template x-if="isX01GameMode()">
                     <div class="text-center mb-1">
-                        <div class="text-sm text-slate-400 uppercase tracking-widest mb-0">Checkout Suggestion</div>
-                        <div class="text-2xl font-bold text-yellow-400" x-text="checkoutInfo().summary"></div>
-                        <div class="mt-0.5 text-base space-y-0 text-slate-200">
-                            <div x-show="checkoutInfo().twoDart" x-text="'2 Dart: ' + checkoutInfo().twoDart"></div>
-                            <div x-show="checkoutInfo().threeDart" x-text="'3 Dart: ' + checkoutInfo().threeDart"></div>
-                        </div>
+                        <div class="text-sm text-yellow-400 font-bold uppercase tracking-widest mb-0">Checkout Suggestion</div>
+                        <div class="mt-0.5 text-base text-slate-200" x-show="checkoutInfo().oneDart || checkoutInfo().twoDart || checkoutInfo().threeDart" x-text="`${checkoutInfo().oneDart ? '1 Dart: ' + checkoutInfo().oneDart : ''}${checkoutInfo().oneDart && (checkoutInfo().twoDart || checkoutInfo().threeDart) ? '   *   ' : ''}${checkoutInfo().twoDart ? '2 Dart: ' + checkoutInfo().twoDart : ''}${checkoutInfo().twoDart && checkoutInfo().threeDart ? '   *   ' : ''}${checkoutInfo().threeDart ? '3 Dart: ' + checkoutInfo().threeDart : ''}`"></div>
                     </div>
                 </template>
 
@@ -350,13 +347,115 @@
                     </div>
                 </template>
 
+                <!-- SHANGHAI GAME BOARD
+                     Shanghai is played over 10 rounds (targets 1-10). Each turn a player records
+                     a Single, Double, Triple hit on the target number. Instant win ("Shanghai")
+                     is achieved by hitting Single + Double + Triple in one 3-dart turn.
+                     Penalties: Miss target 3 → score to 0; Miss target 5 → score halved;
+                     Miss target 8 → player eliminated from remaining rounds. -->
+                <template x-if="isShanghaiGameMode()">
+                    <div class="w-full max-w-[614px] bg-slate-800 rounded-xl border border-slate-700 p-2.5 sm:p-3.5 text-base mb-2 mx-auto shadow">
+                        <!-- Active player indicator and current round -->
+                        <div class="mt-1 text-lg leading-6 text-slate-300 flex items-center gap-3.5 whitespace-nowrap flex-wrap">
+                            <span>Player: <span class="text-red-500 font-black" x-text="players[activePlayer].name"></span></span>
+                            <span>Round <span class="text-yellow-400 font-black" x-text="shanghaiRoundIndex + 1"></span> / 10 — Target: <span class="text-yellow-400 font-black" x-text="shanghaiRoundIndex + 1"></span></span>
+                        </div>
+
+                        <!-- Player scorecards grid (up to 4 per row) -->
+                        <div class="mt-2 grid gap-2" :style="'grid-template-columns: repeat(' + Math.min(players.length, 4) + ', minmax(0, 1fr))'">
+                            <template x-for="(player, idx) in players" :key="idx">
+                                <div
+                                    :class="activePlayer === idx ? 'bg-slate-700 border-t-4 border-red-500' : (player.shanghaiEliminated ? 'bg-red-950/60 opacity-60' : 'bg-slate-900/70')"
+                                    class="rounded-lg border border-slate-700 px-1 py-2 text-center min-w-0"
+                                >
+                                    <div class="text-[11px] font-bold uppercase tracking-wide text-slate-400 truncate" x-text="player.name"></div>
+                                    <div
+                                        class="mt-1 font-black tracking-tight leading-none whitespace-nowrap"
+                                        :class="player.shanghaiEliminated ? 'text-xl text-red-400' : (String(player.shanghaiScore).length >= 4 ? 'text-lg' : (String(player.shanghaiScore).length === 3 ? 'text-xl' : 'text-3xl'))"
+                                        x-text="player.shanghaiEliminated ? 'OUT' : player.shanghaiScore"
+                                    ></div>
+                                </div>
+                            </template>
+                        </div>
+
+                        <!-- Hit buttons for Shanghai: S (Single), D (Double), T (Triple), MISS -->
+                        <div class="mt-3">
+                            <div class="text-[11px] uppercase tracking-[0.18em] text-slate-400 mb-1 text-center">
+                                Record dart on target <span class="text-yellow-400 font-black" x-text="shanghaiRoundIndex + 1"></span>
+                                (darts thrown: <span class="text-yellow-400 font-black" x-text="players[activePlayer].shanghaiTurnDarts || 0"></span> / 3):
+                            </div>
+                            <div class="grid grid-cols-4 gap-2 mb-2">
+                                <!-- Single button -->
+                                <button
+                                    @click="hitShanghai('single')"
+                                    :disabled="players[activePlayer].shanghaiEliminated || (players[activePlayer].shanghaiTurnDarts || 0) >= 3"
+                                    class="keypad-btn font-bold py-3 rounded-lg text-base transition-colors disabled:opacity-40 bg-slate-300 hover:bg-slate-400 text-slate-900 border border-slate-400"
+                                >
+                                    <div class="text-xs text-slate-300">Single</div>
+                                    <div class="font-black text-lg" x-text="shanghaiRoundIndex + 1"></div>
+                                </button>
+                                <!-- Double button -->
+                                <button
+                                    @click="hitShanghai('double')"
+                                    :disabled="players[activePlayer].shanghaiEliminated || (players[activePlayer].shanghaiTurnDarts || 0) >= 3"
+                                    class="keypad-btn font-bold py-3 rounded-lg text-base transition-colors disabled:opacity-40 bg-slate-300 hover:bg-slate-400 text-slate-900 border border-slate-400"
+                                >
+                                    <div class="text-xs text-slate-300">Double</div>
+                                    <div class="font-black text-lg" x-text="'D' + (shanghaiRoundIndex + 1)"></div>
+                                </button>
+                                <!-- Triple button -->
+                                <button
+                                    @click="hitShanghai('triple')"
+                                    :disabled="players[activePlayer].shanghaiEliminated || (players[activePlayer].shanghaiTurnDarts || 0) >= 3"
+                                    class="keypad-btn font-bold py-3 rounded-lg text-base transition-colors disabled:opacity-40 bg-slate-300 hover:bg-slate-400 text-slate-900 border border-slate-400"
+                                >
+                                    <div class="text-xs text-slate-300">Triple</div>
+                                    <div class="font-black text-lg" x-text="'T' + (shanghaiRoundIndex + 1)"></div>
+                                </button>
+                                <!-- Miss button -->
+                                <button
+                                    @click="hitShanghai('miss')"
+                                    :disabled="players[activePlayer].shanghaiEliminated || (players[activePlayer].shanghaiTurnDarts || 0) >= 3"
+                                    class="keypad-btn bg-yellow-700/80 hover:bg-yellow-600 font-bold py-3 rounded-lg text-base transition-colors disabled:opacity-40"
+                                >
+                                    <div class="text-xs text-yellow-200">Miss</div>
+                                    <div class="font-black text-lg text-yellow-100">0</div>
+                                </button>
+                            </div>
+
+                            <!-- Dart indicator dots -->
+                            <div class="flex justify-center gap-3 mb-2">
+                                <template x-for="i in [1,2,3]" :key="i">
+                                    <div
+                                        :class="i <= (players[activePlayer].shanghaiTurnDarts || 0) ? 'bg-red-500 border-red-400' : 'bg-slate-700 border-slate-500'"
+                                        class="w-7 h-7 rounded-full border-2 flex items-center justify-center text-xs font-bold"
+                                        x-text="i"
+                                    ></div>
+                                </template>
+                            </div>
+
+                            <!-- Message banner (reserved height so UNDO/ENTER stay large) -->
+                            <div
+                                class="w-full text-center text-red-500 font-bold text-sm min-h-[1.5rem] flex items-center justify-center mb-2"
+                                x-text="shanghaiMessage || '\u00A0'"
+                            ></div>
+
+                            <!-- UNDO and ENTER buttons -->
+                            <div class="grid grid-cols-2 gap-2.5">
+                                <button @click="undo()" class="bg-yellow-600 hover:bg-yellow-500 font-bold py-3 rounded-xl text-lg transition-colors shadow">UNDO</button>
+                                <button @click="submitShanghaiTurn()" class="bg-green-600 hover:bg-green-500 font-bold py-3 rounded-xl text-lg transition-colors shadow">ENTER</button>
+                            </div>
+                        </div>
+                    </div>
+                </template>
+
                 <!-- CURRENT TURN INPUT DISPLAY (X01 games only; scaled 20%)
                      Displays current entered score expression, turn total, and new remaining score preview -->
-                <template x-if="!isCricketGameMode() && !isBowTieGameMode()">
+                <template x-if="!isCricketGameMode() && !isBowTieGameMode() && !isShanghaiGameMode()">
                     <div class="bg-slate-800/60 border border-slate-700 rounded-xl p-2 sm:p-2.5 w-full max-w-md text-center shadow-inner">
                         <div class="text-sm text-slate-400 uppercase mb-0.5">Current Turn Score</div>
                         <!-- Current unsubmitted turn score expression (scaled 20%) -->
-                        <div class="text-5xl sm:text-6xl font-mono font-black text-red-500 tracking-widest h-12 sm:h-14" x-text="currentTurnScore || '0'"></div>
+                        <div class="text-5xl sm:text-6xl font-mono font-black text-red-500 tracking-widest h-12 sm:h-14" x-text="Math.round((currentTurnScore || 0) * 0.9)"></div>
                         <!-- Turn Total and New Score Preview Boxes (scaled 20%) -->
                         <div class="mt-1.5 grid grid-cols-2 gap-1.5 text-left">
                             <div class="bg-slate-900/60 rounded-lg p-2.5">
@@ -374,7 +473,7 @@
                 <!-- X01 NUMERIC KEYPAD & TURN CONTROLS (scaled 20%)
                      Provides touch-friendly numeric entry (1-9, 0, +, *), Del, UNDO, MISS, BUST, ENTER,
                      a dedicated status/error display line, and quick-score preset buttons. -->
-                <template x-if="isX01GameMode()">
+                <template x-if="isX01GameMode() && !isShanghaiGameMode()">
                     <div class="compact-keypad w-full max-w-[538px] mt-1 bg-slate-800/60 border-t border-slate-700 px-1.5 py-1.5 rounded-lg shrink-0">
                         <div class="max-w-[538px] mx-auto">
                             <!-- Keypad Grid (4 columns; scaled 20%) -->
@@ -426,7 +525,9 @@
             </div>
 
             <!-- BOTTOM UTILITY BAR -->
-            <div class="flex justify-end items-center px-3 py-1 border-t border-slate-700 text-xs shrink-0">
+            <div x-show="winMessage" class="text-center text-yellow-400 font-bold text-sm mb-2 px-2" x-text="winMessage"></div>
+
+<div class="flex justify-end items-center px-3 py-1 border-t border-slate-700 text-xs shrink-0">
                 <span class="text-slate-500">Scoreboard v0.1</span>
             </div>
 
@@ -445,7 +546,7 @@
                    APPLICATION STATE PROPERTIES
                    ------------------------------------------------------------------ */
                 screen: 'menu',                    // Current screen: 'menu' (setup) or 'scoring' (live match)
-                gameMode: '501',                   // Selected game mode ('501', '301', 'Cricket', 'BowTie', etc.)
+                gameMode: '501',                   // Selected game mode ('501', '301', 'Cricket', 'BowTie', 'Shanghai', etc.)
                 startingMode: 'Straight-in',       // X01 starting rule ('Straight-in' or 'Double-in')
                 matchType: 'Single Leg',           // Match structure type
                 playerCount: 2,                    // Number of active players
@@ -457,6 +558,10 @@
                 bowTieMessage: '',                 // Validation / alert message for BowTie (e.g. max score 180)
                 cricketHitLimitMessage: '',        // Alert message for Cricket (closed target or 3-dart limit)
                 x01BustMessage: '',                // Alert message for X01 (Bust or max score 180)
+                // Shanghai state
+                shanghaiRoundIndex: 0,             // Current round index (0-9, representing targets 1-10)
+                shanghaiMessage: '',               // Alert/status message for Shanghai game
+                winMessage: '',                    // Game-win message shown in the message space instead of a pop-up
                 players: [                         // List of player state objects
                     { name: 'P1', score: 501, history: [], cricketScore: 0, marks: {20:0, 19:0, 18:0, 17:0, 16:0, 15:0, 'B':0}, turnDarts: 0, bowTieScore: 0 },
                     { name: 'P2', score: 501, history: [], cricketScore: 0, marks: {20:0, 19:0, 18:0, 17:0, 16:0, 15:0, 'B':0}, turnDarts: 0, bowTieScore: 0 }
@@ -484,7 +589,8 @@
                         bowTieMessage: this.bowTieMessage,
                         cricketHitLimitMessage: this.cricketHitLimitMessage,
                         players: JSON.parse(JSON.stringify(this.players)),
-                        lastTurn: this.lastTurn ? { ...this.lastTurn } : null
+                        lastTurn: this.lastTurn ? { ...this.lastTurn } : null,
+                        shanghaiRoundIndex: this.shanghaiRoundIndex
                     });
                 },
 
@@ -506,6 +612,7 @@
                     this.cricketHitLimitMessage = snapshot.cricketHitLimitMessage || '';
                     this.players = JSON.parse(JSON.stringify(snapshot.players));
                     this.lastTurn = snapshot.lastTurn ? { ...snapshot.lastTurn } : null;
+                    this.shanghaiRoundIndex = snapshot.shanghaiRoundIndex ?? 0;
                 },
 
                 /**
@@ -525,7 +632,8 @@
                         bowTieMessage: this.bowTieMessage || '',
                         cricketHitLimitMessage: this.cricketHitLimitMessage || '',
                         players: JSON.parse(JSON.stringify(this.players)),
-                        lastTurn: this.lastTurn ? { ...this.lastTurn } : null
+                        lastTurn: this.lastTurn ? { ...this.lastTurn } : null,
+                        shanghaiRoundIndex: this.shanghaiRoundIndex ?? 0
                     };
                 },
 
@@ -546,6 +654,7 @@
                     this.cricketHitLimitMessage = '';
                     this.x01BustMessage = '';
                     this.bowTieMessage = '';
+                    this.shanghaiMessage = '';
                 },
 
                 /* ------------------------------------------------------------------
@@ -576,9 +685,14 @@
                     return this.gameMode === 'BowTie';
                 },
 
+                /** Check if current mode is Shanghai */
+                isShanghaiGameMode() {
+                    return this.gameMode === 'Shanghai';
+                },
+
                 /** Returns maximum allowed players for the current game mode */
                 getMaxPlayerCount() {
-                    if (this.isBowTieGameMode()) return 15;
+                    if (this.isBowTieGameMode() || this.isShanghaiGameMode()) return 15;
                     if (this.isX01GameMode()) return 4;
                     if (this.isThreeWayCricketGameMode()) return 3;
                     return 2;
@@ -662,6 +776,8 @@
                         this.playerCount = 2;
                     } else if (this.isBowTieGameMode()) {
                         this.playerCount = 2;
+                    } else if (this.isShanghaiGameMode()) {
+                        this.playerCount = 2;
                     }
                     // Reset player names back to defaults (P1, P2, P3, etc.)
                     this.setupPlayerNames(true);
@@ -698,7 +814,11 @@
                             cricketScore: existing && !resetToDefault ? existing.cricketScore || 0 : 0,
                             marks: existing && !resetToDefault && existing.marks ? { ...existing.marks } : {20:0, 19:0, 18:0, 17:0, 16:0, 15:0, 'B':0},
                             turnDarts: existing && !resetToDefault ? existing.turnDarts || 0 : 0,
-                            bowTieScore: existing && !resetToDefault ? existing.bowTieScore || 0 : 0
+                            bowTieScore: existing && !resetToDefault ? existing.bowTieScore || 0 : 0,
+                            shanghaiScore: existing && !resetToDefault ? existing.shanghaiScore || 0 : 0,
+                            shanghaiTurnDarts: 0,
+                            shanghaiTurnHits: [],
+                            shanghaiEliminated: false
                         };
                     });
                 },
@@ -717,7 +837,11 @@
                         cricketScore: 0,
                         marks: {20:0, 19:0, 18:0, 17:0, 16:0, 15:0, 'B':0},
                         turnDarts: 0,
-                        bowTieScore: 0
+                        bowTieScore: 0,
+                        shanghaiScore: 0,
+                        shanghaiTurnDarts: 0,
+                        shanghaiTurnHits: [],
+                        shanghaiEliminated: false
                     }));
                     this.activePlayer = 0;
                     this.currentTurnScore = '';
@@ -727,6 +851,8 @@
                     this.bowTieMessage = '';
                     this.cricketHitLimitMessage = '';
                     this.x01BustMessage = '';
+                    this.shanghaiRoundIndex = 0;
+                    this.shanghaiMessage = '';
                     this.screen = 'scoring';
                     this.undoStack = [this.saveUndoStateSnapshot()];
                 },
@@ -739,6 +865,201 @@
                     this.x01BustMessage = '';
                     this.bowTieMessage = '';
                     this.cricketHitLimitMessage = '';
+                },
+
+                /* ------------------------------------------------------------------
+                   BOWTIE GAME RULES & SCORING ENGINE
+                   ------------------------------------------------------------------ */
+                /* ------------------------------------------------------------------
+                   SHANGHAI GAME RULES & SCORING ENGINE
+                   ------------------------------------------------------------------ */
+
+                /**
+                 * Records a dart hit in Shanghai.
+                 * @param {string} type - 'single', 'double', 'triple', or 'miss'
+                 * Hit types:
+                 *   single  → face value of round target
+                 *   double  → 2× target
+                 *   triple  → 3× target
+                 *   miss    → 0 points
+                 * Instant win ("Shanghai"): If a player hits Single + Double + Triple in one 3-dart turn
+                 *   they immediately win, regardless of score position.
+                 * Penalties on submitting a turn where ALL darts were misses (zero score):
+                 *   Round 3 miss → score reset to 0
+                 *   Round 5 miss → score halved (rounded up if odd)
+                 *   Round 8 miss → player eliminated (skipped for rounds 9-10)
+                 */
+                hitShanghai(type) {
+                    const p = this.players[this.activePlayer];
+                    if (!p) return;
+                    if (p.shanghaiEliminated) {
+                        this.shanghaiMessage = `${p.name} is eliminated — press ENTER to continue`;
+                        return;
+                    }
+                    const darts = p.shanghaiTurnDarts || 0;
+                    if (darts >= 3) {
+                        this.shanghaiMessage = '3 darts thrown — press ENTER to submit or UNDO to correct';
+                        return;
+                    }
+                    this.saveUndoState();
+                    this.shanghaiMessage = '';
+                    const target = this.shanghaiRoundIndex + 1;
+                    let points = 0;
+                    if (type === 'single') points = target;
+                    else if (type === 'double') points = target * 2;
+                    else if (type === 'triple') points = target * 3;
+                    // miss → 0 points, dart still counted
+
+                    p.shanghaiScore = (p.shanghaiScore || 0) + points;
+                    p.shanghaiTurnDarts = darts + 1;
+                    if (!p.shanghaiTurnHits) p.shanghaiTurnHits = [];
+                    p.shanghaiTurnHits.push(type);
+
+                    // Check for Shanghai instant win: Single + Double + Triple all hit in one turn (any order).
+                    // Each scoring button may be hit more than once per turn (e.g. three Triples).
+                    const hits = p.shanghaiTurnHits;
+                    if (hits.includes('single') && hits.includes('double') && hits.includes('triple')) {
+                        const winMsg = `🎯 SHANGHAI! ${p.name} wins with a Single, Double & Triple on ${target}! Click New Match to start a new game.`;
+                        this.winMessage = winMsg;
+                        // Show the win message in the message space, then restart the game
+                        setTimeout(() => {
+                            this.startShanghaiNewGame();
+                            this.winMessage = '';
+                        }, 1400);
+                    }
+                },
+
+                /**
+                 * Submits the active player's Shanghai turn.
+                 * Applies penalties for missing the target on rounds 3, 5, 8.
+                 * Advances to the next non-eliminated player and next round when all players have thrown.
+                 */
+                submitShanghaiTurn() {
+                    if (!this.isShanghaiGameMode()) return;
+                    const p = this.players[this.activePlayer];
+                    if (!p) return;
+
+                    // If player is eliminated, just skip their turn
+                    if (p.shanghaiEliminated) {
+                        this.advanceShanghaiTurn(false);
+                        return;
+                    }
+
+                    this.saveUndoState();
+                    const target = this.shanghaiRoundIndex + 1;
+
+                    // Calculate turn score from recorded hits (a hit type may be recorded more than once per turn)
+                    let turnScore = 0;
+                    const hits = p.shanghaiTurnHits || [];
+                    for (const t of hits) {
+                        if (t === 'single') turnScore += target;
+                        else if (t === 'double') turnScore += target * 2;
+                        else if (t === 'triple') turnScore += target * 3;
+                    }
+
+                    // Apply penalty rules when player scored 0 on the target this turn
+                    if (turnScore === 0) {
+                        if (target === 3) {
+                            // Miss target 3: score reset to zero
+                            p.shanghaiScore = 0;
+                            this.shanghaiMessage = `${p.name} missed target 3 — score reset to 0!`;
+                        } else if (target === 5) {
+                            // Miss target 5: score halved (round up if odd before halving)
+                            const before = p.shanghaiScore || 0;
+                            const adjusted = before % 2 === 1 ? before + 1 : before;
+                            p.shanghaiScore = Math.floor(adjusted / 2);
+                            this.shanghaiMessage = `${p.name} missed target 5 — score halved to ${p.shanghaiScore}!`;
+                        } else if (target === 8) {
+                            // Miss target 8: player is eliminated from remaining rounds
+                            p.shanghaiEliminated = true;
+                            this.shanghaiMessage = `${p.name} missed target 8 — ELIMINATED!`;
+                        }
+                    } else {
+                        this.shanghaiMessage = '';
+                    }
+
+                    // Reset per-turn tracking flags
+                    p.shanghaiTurnDarts = 0;
+                    p.shanghaiTurnHits = [];
+
+                    this.advanceShanghaiTurn(true);
+                },
+
+                /**
+                 * Advances to the next player (skipping eliminated players).
+                 * When all players have completed the current round, increments to the next round.
+                 * When all 10 rounds are complete, declares the winner and restarts on the scoring screen.
+                 * @param {boolean} preserveMessage - When true, keeps the current penalty message visible briefly
+                 */
+                advanceShanghaiTurn(preserveMessage) {
+                    const totalPlayers = this.players.length;
+                    const nextPlayer = (this.activePlayer + 1) % totalPlayers;
+
+                    // If we wrapped back around to player 0, a full round cycle was completed
+                    if (nextPlayer === 0 || nextPlayer <= this.activePlayer) {
+                        this.shanghaiRoundIndex += 1;
+                        if (!preserveMessage) this.shanghaiMessage = '';
+
+                        // Check game over (all 10 rounds done)
+                        if (this.shanghaiRoundIndex >= 10) {
+                            const eligible = this.players.filter((pl) => !pl.shanghaiEliminated);
+                            const pool = eligible.length > 0 ? eligible : this.players;
+                            const winner = pool.reduce((best, pl) =>
+                                (!best || (pl.shanghaiScore || 0) > (best.shanghaiScore || 0)) ? pl : best, null);
+                            if (winner) {
+                                    this.winMessage = `🏆 ${winner.name} wins Shanghai with ${winner.shanghaiScore} points! Click New Match to start a new game.`;
+                                    setTimeout(() => {
+                                        this.startShanghaiNewGame();
+                                        this.winMessage = '';
+                                    }, 1400);
+                            }
+                            return;
+                        }
+                    }
+
+                    this.activePlayer = nextPlayer;
+
+                    // Auto-skip eliminated players
+                    let safety = 0;
+                    while (this.players[this.activePlayer] && this.players[this.activePlayer].shanghaiEliminated && safety < totalPlayers * 10) {
+                        const wasAtEnd = this.activePlayer === totalPlayers - 1;
+                        this.activePlayer = (this.activePlayer + 1) % totalPlayers;
+                        if (wasAtEnd || this.activePlayer === 0) {
+                            this.shanghaiRoundIndex += 1;
+                            if (this.shanghaiRoundIndex >= 10) {
+                                const eligible = this.players.filter((pl) => !pl.shanghaiEliminated);
+                                const pool = eligible.length > 0 ? eligible : this.players;
+                                const winner = pool.reduce((best, pl) =>
+                                    (!best || (pl.shanghaiScore || 0) > (best.shanghaiScore || 0)) ? pl : best, null);
+                                if (winner) {
+                                    this.winMessage = `🏆 ${winner.name} wins Shanghai with ${winner.shanghaiScore} points! Click New Match to start a new game.`;
+                                    setTimeout(() => {
+                                        this.startShanghaiNewGame();
+                                        this.winMessage = '';
+                                    }, 1400);
+                                }
+                                return;
+                            }
+                        }
+                        safety++;
+                    }
+                },
+
+                /**
+                 * Resets the Shanghai game to round 1 WITHOUT returning to the menu.
+                 * All scores reset, eliminations cleared, stays on the scoring screen.
+                 */
+                startShanghaiNewGame() {
+                    this.players = this.players.map((p) => ({
+                        ...p,
+                        shanghaiScore: 0,
+                        shanghaiTurnDarts: 0,
+                        shanghaiEliminated: false
+                    }));
+                    this.shanghaiRoundIndex = 0;
+                    this.shanghaiMessage = '';
+                    this.activePlayer = 0;
+                    this.undoStack = [this.saveUndoStateSnapshot()];
                 },
 
                 /* ------------------------------------------------------------------
@@ -1001,7 +1322,22 @@
                             return best;
                         }, null);
                         if (winner) {
-                            alert(`${winner.name} wins BowTie with ${winner.bowTieScore} points!`);
+                            this.winMessage = `${winner.name} wins BowTie with ${winner.bowTieScore} points! Click New Match to start a new game.`;
+                            // Show the win message in the message space, then reset for another game
+                            setTimeout(() => {
+                                this.players = this.players.map((pl) => ({
+                                    ...pl,
+                                    bowTieScore: 0,
+                                    turnDarts: 0
+                                }));
+                                this.activePlayer = 0;
+                                this.bowTieRoundIndex = 0;
+                                this.bowTieDarts = [];
+                                this.bowTieRoundInput = '';
+                                this.bowTieMessage = '';
+                                this.winMessage = '';
+                                this.undoStack = [this.saveUndoStateSnapshot()];
+                            }, 1400);
                         }
                     }
                 },
@@ -1141,8 +1477,22 @@
 
                     // Leg Win Condition: Player reaches exactly 0
                     if (p.score === 0) {
-                        alert(`${p.name} WINS THE LEG!`);
-                        this.screen = 'menu';
+                        this.winMessage = `${p.name} WINS THE LEG! Click New Match to start a new game.`;
+                        // Show the win message in the message space, then start a new leg
+                        setTimeout(() => {
+                            const startingScore = this.getStartingScore();
+                            this.players = this.players.map((pl, i) => ({
+                                ...pl,
+                                score: startingScore,
+                                history: [],
+                                turnDarts: 0
+                            }));
+                            this.activePlayer = 0;
+                            this.currentTurnScore = '';
+                            this.x01BustMessage = '';
+                            this.winMessage = '';
+                            this.undoStack = [this.saveUndoStateSnapshot()];
+                        }, 1400);
                         return;
                     }
 
@@ -1171,7 +1521,7 @@
                 getCheckout(score) {
                     const remaining = Number(score);
                     if (!Number.isFinite(remaining) || remaining <= 1 || remaining > 170) {
-                        return { summary: 'Build Score', twoDart: '', threeDart: '' };
+                        return { summary: 'Build Score', oneDart: '', twoDart: '', threeDart: '' };
                     }
 
                     const throwOptions = [];
@@ -1250,19 +1600,25 @@
                         }).map((match) => match.route);
                     };
 
+                    // Check 1-dart checkout first (must be a valid double finish exactly equal to remaining)
+                    const oneDartOption = throwOptions.find((opt) => opt.value === remaining && isValidFinish(opt));
+                    const oneDart = oneDartOption ? oneDartOption.label : '';
                     const twoDart = findExactCheckout(2)[0] || '';
                     const threeDart = findExactCheckout(3)[0] || '';
 
+                    if (oneDart) {
+                        return { summary: '1-Dart checkout', oneDart, twoDart, threeDart };
+                    }
                     if (twoDart && threeDart) {
-                        return { summary: 'Checkout route', twoDart, threeDart };
+                        return { summary: 'Checkout route', oneDart: '', twoDart, threeDart };
                     }
                     if (twoDart) {
-                        return { summary: '2-Dart checkout', twoDart, threeDart };
+                        return { summary: '2-Dart checkout', oneDart: '', twoDart, threeDart };
                     }
                     if (threeDart) {
-                        return { summary: '3-Dart checkout', twoDart, threeDart };
+                        return { summary: '3-Dart checkout', oneDart: '', twoDart, threeDart };
                     }
-                    return { summary: 'Standard route available', twoDart, threeDart };
+                    return { summary: 'Standard route available', oneDart: '', twoDart, threeDart };
                 },
 
                 /* ------------------------------------------------------------------
