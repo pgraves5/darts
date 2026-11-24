@@ -179,8 +179,8 @@
                      Suggests optimal 2-dart and 3-dart double-finish routes for remaining score <= 170 -->
                 <template x-if="isX01GameMode()">
                     <div class="text-center mb-1">
-                        <div class="text-sm text-yellow-400 font-bold uppercase tracking-widest mb-0">Checkout Suggestion</div>
-                        <div class="mt-0.5 text-base text-slate-200" x-show="checkoutInfo().oneDart || checkoutInfo().twoDart || checkoutInfo().threeDart" x-text="`${checkoutInfo().oneDart ? '1 Dart: ' + checkoutInfo().oneDart : ''}${checkoutInfo().oneDart && (checkoutInfo().twoDart || checkoutInfo().threeDart) ? '   *   ' : ''}${checkoutInfo().twoDart ? '2 Dart: ' + checkoutInfo().twoDart : ''}${checkoutInfo().twoDart && checkoutInfo().threeDart ? '   *   ' : ''}${checkoutInfo().threeDart ? '3 Dart: ' + checkoutInfo().threeDart : ''}`"></div>
+                        <div class="text-sm text-yellow-400 font-bold uppercase tracking-widest mb-0" x-show="checkoutInfo().oneDart || checkoutInfo().twoDart">Checkout Suggestion</div>
+                        <div class="mt-0.5 text-base text-slate-200" x-show="checkoutInfo().oneDart || checkoutInfo().twoDart || checkoutInfo().threeDart" x-text="`${checkoutInfo().oneDart ? '1 Dart: ' + checkoutInfo().oneDart : ''}${checkoutInfo().oneDart && (checkoutInfo().twoDart || checkoutInfo().threeDart) ? '   ---   ' : ''}${checkoutInfo().twoDart ? '2 Dart: ' + checkoutInfo().twoDart : ''}${checkoutInfo().twoDart && checkoutInfo().threeDart ? '   ---   ' : ''}${checkoutInfo().threeDart ? '3 Dart: ' + checkoutInfo().threeDart : ''}`"></div>
                     </div>
                 </template>
 
@@ -210,15 +210,15 @@
                                 <div class="grid grid-cols-[34px_48px_34px] items-center justify-items-center justify-end gap-1.5 sm:gap-2.5 text-slate-200 bg-slate-900 py-1 rounded w-full ml-auto text-center">
                                     <!-- Triple button (not available for Bullseye) -->
                                     <template x-if="target !== 'B'">
-                                        <button @click="hitCricket(activePlayer, target, 3)" class="w-[34px] h-[34px] bg-slate-700 hover:bg-slate-600 rounded text-[29px] flex items-center justify-center">T</button>
+                                        <button @click="hitCricket(activePlayer, target, 3)" :disabled="isGameOver" class="w-[34px] h-[34px] bg-slate-700 hover:bg-slate-600 rounded text-[29px] flex items-center justify-center disabled:opacity-40">T</button>
                                     </template>
                                     <template x-if="target === 'B'">
                                         <div class="w-[34px] h-[34px]"></div>
                                     </template>
                                     <!-- Single hit button (displays target number or 'B') -->
-                                    <button @click="hitCricket(activePlayer, target, 1)" class="w-[48px] h-[38px] bg-slate-900 hover:bg-slate-700 rounded text-[31px] flex items-center justify-center" x-text="target"></button>
+                                    <button @click="hitCricket(activePlayer, target, 1)" :disabled="isGameOver" class="w-[48px] h-[38px] bg-slate-900 hover:bg-slate-700 rounded text-[31px] flex items-center justify-center disabled:opacity-40" x-text="target"></button>
                                     <!-- Double hit button -->
-                                    <button @click="hitCricket(activePlayer, target, 2)" class="w-[34px] h-[34px] bg-slate-700 hover:bg-slate-600 rounded text-[29px] flex items-center justify-center">D</button>
+                                    <button @click="hitCricket(activePlayer, target, 2)" :disabled="isGameOver" class="w-[34px] h-[34px] bg-slate-700 hover:bg-slate-600 rounded text-[29px] flex items-center justify-center disabled:opacity-40">D</button>
                                 </div>
                             </div>
                         </template>
@@ -233,12 +233,12 @@
                         <!-- Alert / Notification banner (e.g. closed target alert, 3-dart hit limit) -->
                         <div
                             class="w-full text-center text-red-500 font-bold text-sm mb-1 min-h-[1.5rem] flex items-center justify-center"
-                            x-text="cricketHitLimitMessage || '\u00A0'"
+                            x-text="winMessage || cricketHitLimitMessage || '\u00A0'"
                         ></div>
                         <!-- Undo and Enter actions (scaled 20%) -->
                         <div class="grid grid-cols-2 gap-2.5">
                             <button @click="undo()" class="bg-yellow-600 hover:bg-yellow-500 font-bold py-3 rounded-xl text-lg transition-colors shadow">UNDO</button>
-                            <button @click="submitCricketTurn()" class="bg-green-600 hover:bg-green-500 font-bold py-3 rounded-xl text-lg transition-colors shadow">ENTER</button>
+                            <button @click="submitCricketTurn()" :disabled="winMessage !== ''" class="bg-green-600 hover:bg-green-500 font-bold py-3 rounded-xl text-lg transition-colors shadow">ENTER</button>
                         </div>
                     </div>
                 </template>
@@ -300,24 +300,24 @@
                                      Col 1-3: Numbers 0-9 and operators (+, *)
                                      Col 4: Row 1 = Del, Row 2 = CLEAR, Row 3 = UNDO, Row 4 = Spacer -->
                                 <div class="grid grid-cols-4 gap-2 my-2">
-                                    <button @click="pressKey('1')" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-base font-bold py-2 rounded-lg">1</button>
-                                    <button @click="pressKey('2')" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-base font-bold py-2 rounded-lg">2</button>
-                                    <button @click="pressKey('3')" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-base font-bold py-2 rounded-lg">3</button>
-                                    <button @click="pressKey('back')" class="keypad-btn bg-red-900/60 hover:bg-red-800 text-xs font-bold py-2 rounded-lg text-red-300">Del</button>
+                                    <button @click="pressKey('1')" :disabled="isGameOver" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-base font-bold py-2 rounded-lg disabled:opacity-40">1</button>
+                                    <button @click="pressKey('2')" :disabled="isGameOver" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-base font-bold py-2 rounded-lg disabled:opacity-40">2</button>
+                                    <button @click="pressKey('3')" :disabled="isGameOver" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-base font-bold py-2 rounded-lg disabled:opacity-40">3</button>
+                                    <button @click="pressKey('back')" :disabled="isGameOver" class="keypad-btn bg-red-900/60 hover:bg-red-800 text-xs font-bold py-2 rounded-lg text-red-300 disabled:opacity-40">Del</button>
 
-                                    <button @click="pressKey('4')" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-base font-bold py-2 rounded-lg">4</button>
-                                    <button @click="pressKey('5')" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-base font-bold py-2 rounded-lg">5</button>
-                                    <button @click="pressKey('6')" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-base font-bold py-2 rounded-lg">6</button>
+                                    <button @click="pressKey('4')" :disabled="isGameOver" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-base font-bold py-2 rounded-lg disabled:opacity-40">4</button>
+                                    <button @click="pressKey('5')" :disabled="isGameOver" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-base font-bold py-2 rounded-lg disabled:opacity-40">5</button>
+                                    <button @click="pressKey('6')" :disabled="isGameOver" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-base font-bold py-2 rounded-lg disabled:opacity-40">6</button>
                                     <button @click="clearBowTieRoundInput()" class="keypad-btn bg-slate-600 hover:bg-slate-500 text-xs font-bold py-2 rounded-lg text-slate-100">CLEAR</button>
 
-                                    <button @click="pressKey('7')" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-base font-bold py-2 rounded-lg">7</button>
-                                    <button @click="pressKey('8')" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-base font-bold py-2 rounded-lg">8</button>
-                                    <button @click="pressKey('9')" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-base font-bold py-2 rounded-lg">9</button>
+                                    <button @click="pressKey('7')" :disabled="isGameOver" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-base font-bold py-2 rounded-lg disabled:opacity-40">7</button>
+                                    <button @click="pressKey('8')" :disabled="isGameOver" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-base font-bold py-2 rounded-lg disabled:opacity-40">8</button>
+                                    <button @click="pressKey('9')" :disabled="isGameOver" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-base font-bold py-2 rounded-lg disabled:opacity-40">9</button>
                                     <button @click="undo()" class="keypad-btn bg-yellow-600 hover:bg-yellow-500 text-xs font-bold py-2 rounded-lg text-yellow-50">UNDO</button>
 
-                                    <button @click="pressKey('+')" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-base font-bold py-2 rounded-lg text-yellow-300">+</button>
-                                    <button @click="pressKey('0')" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-base font-bold py-2 rounded-lg">0</button>
-                                    <button @click="pressKey('*')" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-base font-bold py-2 rounded-lg text-yellow-300">×</button>
+                                    <button @click="pressKey('+')" :disabled="isGameOver" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-base font-bold py-2 rounded-lg text-yellow-300 disabled:opacity-40">+</button>
+                                    <button @click="pressKey('0')" :disabled="isGameOver" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-base font-bold py-2 rounded-lg disabled:opacity-40">0</button>
+                                    <button @click="pressKey('*')" :disabled="isGameOver" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-base font-bold py-2 rounded-lg text-yellow-300 disabled:opacity-40">×</button>
                                     <div class="keypad-btn"></div>
                                 </div>
 
@@ -340,7 +340,7 @@
                                 ></div>
                                 <!-- BowTie Submit Button (scaled 20%) -->
                                 <div class="mt-1">
-                                    <button @click="submitBowTieTurn()" class="w-full bg-green-600 hover:bg-green-500 font-bold py-2.5 rounded-lg text-base tracking-wide shadow transition-colors">ENTER</button>
+                                    <button @click="submitBowTieTurn()" :disabled="isGameOver || winMessage !== ''" class="w-full bg-green-600 hover:bg-green-500 font-bold py-2.5 rounded-lg text-base tracking-wide shadow transition-colors disabled:opacity-40">ENTER</button>
                                 </div>
                             </div>
                         </div>
@@ -388,7 +388,7 @@
                                 <!-- Single button -->
                                 <button
                                     @click="hitShanghai('single')"
-                                    :disabled="players[activePlayer].shanghaiEliminated || (players[activePlayer].shanghaiTurnDarts || 0) >= 3"
+                                    :disabled="isGameOver || players[activePlayer].shanghaiEliminated || (players[activePlayer].shanghaiTurnDarts || 0) >= 3"
                                     class="keypad-btn font-bold py-3 rounded-lg text-base transition-colors disabled:opacity-40 bg-slate-300 hover:bg-slate-400 text-slate-900 border border-slate-400"
                                 >
                                     <div class="text-xs text-slate-300">Single</div>
@@ -397,7 +397,7 @@
                                 <!-- Double button -->
                                 <button
                                     @click="hitShanghai('double')"
-                                    :disabled="players[activePlayer].shanghaiEliminated || (players[activePlayer].shanghaiTurnDarts || 0) >= 3"
+                                    :disabled="isGameOver || players[activePlayer].shanghaiEliminated || (players[activePlayer].shanghaiTurnDarts || 0) >= 3"
                                     class="keypad-btn font-bold py-3 rounded-lg text-base transition-colors disabled:opacity-40 bg-slate-300 hover:bg-slate-400 text-slate-900 border border-slate-400"
                                 >
                                     <div class="text-xs text-slate-300">Double</div>
@@ -406,7 +406,7 @@
                                 <!-- Triple button -->
                                 <button
                                     @click="hitShanghai('triple')"
-                                    :disabled="players[activePlayer].shanghaiEliminated || (players[activePlayer].shanghaiTurnDarts || 0) >= 3"
+                                    :disabled="isGameOver || players[activePlayer].shanghaiEliminated || (players[activePlayer].shanghaiTurnDarts || 0) >= 3"
                                     class="keypad-btn font-bold py-3 rounded-lg text-base transition-colors disabled:opacity-40 bg-slate-300 hover:bg-slate-400 text-slate-900 border border-slate-400"
                                 >
                                     <div class="text-xs text-slate-300">Triple</div>
@@ -415,7 +415,7 @@
                                 <!-- Miss button -->
                                 <button
                                     @click="hitShanghai('miss')"
-                                    :disabled="players[activePlayer].shanghaiEliminated || (players[activePlayer].shanghaiTurnDarts || 0) >= 3"
+                                    :disabled="isGameOver || players[activePlayer].shanghaiEliminated || (players[activePlayer].shanghaiTurnDarts || 0) >= 3"
                                     class="keypad-btn bg-yellow-700/80 hover:bg-yellow-600 font-bold py-3 rounded-lg text-base transition-colors disabled:opacity-40"
                                 >
                                     <div class="text-xs text-yellow-200">Miss</div>
@@ -443,7 +443,7 @@
                             <!-- UNDO and ENTER buttons -->
                             <div class="grid grid-cols-2 gap-2.5">
                                 <button @click="undo()" class="bg-yellow-600 hover:bg-yellow-500 font-bold py-3 rounded-xl text-lg transition-colors shadow">UNDO</button>
-                                <button @click="submitShanghaiTurn()" class="bg-green-600 hover:bg-green-500 font-bold py-3 rounded-xl text-lg transition-colors shadow">ENTER</button>
+                                <button @click="submitShanghaiTurn()" :disabled="winMessage !== ''" class="bg-green-600 hover:bg-green-500 font-bold py-3 rounded-xl text-lg transition-colors shadow">ENTER</button>
                             </div>
                         </div>
                     </div>
@@ -455,7 +455,7 @@
                     <div class="bg-slate-800/60 border border-slate-700 rounded-xl p-2 sm:p-2.5 w-full max-w-md text-center shadow-inner">
                         <div class="text-sm text-slate-400 uppercase mb-0.5">Current Turn Score</div>
                         <!-- Current unsubmitted turn score expression (scaled 20%) -->
-                        <div class="text-5xl sm:text-6xl font-mono font-black text-red-500 tracking-widest h-12 sm:h-14" x-text="Math.round((currentTurnScore || 0) * 0.9)"></div>
+                        <div class="text-3xl sm:text-4xl font-mono font-black text-red-500 tracking-widest h-12 sm:h-14" x-text="currentTurnScore || '0'"></div>
                         <!-- Turn Total and New Score Preview Boxes (scaled 20%) -->
                         <div class="mt-1.5 grid grid-cols-2 gap-1.5 text-left">
                             <div class="bg-slate-900/60 rounded-lg p-2.5">
@@ -478,35 +478,35 @@
                         <div class="max-w-[538px] mx-auto">
                             <!-- Keypad Grid (4 columns; scaled 20%) -->
                             <div class="grid grid-cols-4 gap-2 mb-2">
-                                <button @click="pressKey('1')" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-lg font-bold py-2.5 rounded-lg">1</button>
-                                <button @click="pressKey('2')" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-lg font-bold py-2.5 rounded-lg">2</button>
-                                <button @click="pressKey('3')" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-lg font-bold py-2.5 rounded-lg">3</button>
+                                <button @click="pressKey('1')" :disabled="isGameOver" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-lg font-bold py-2.5 rounded-lg disabled:opacity-40">1</button>
+                                <button @click="pressKey('2')" :disabled="isGameOver" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-lg font-bold py-2.5 rounded-lg disabled:opacity-40">2</button>
+                                <button @click="pressKey('3')" :disabled="isGameOver" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-lg font-bold py-2.5 rounded-lg disabled:opacity-40">3</button>
                                 <button @click="pressKey('back')" class="keypad-btn bg-red-900/60 hover:bg-red-800 text-xs font-bold py-2.5 rounded-lg text-red-300">Del</button>
 
-                                <button @click="pressKey('4')" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-lg font-bold py-2.5 rounded-lg">4</button>
-                                <button @click="pressKey('5')" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-lg font-bold py-2.5 rounded-lg">5</button>
-                                <button @click="pressKey('6')" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-lg font-bold py-2.5 rounded-lg">6</button>
+                                <button @click="pressKey('4')" :disabled="isGameOver" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-lg font-bold py-2.5 rounded-lg disabled:opacity-40">4</button>
+                                <button @click="pressKey('5')" :disabled="isGameOver" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-lg font-bold py-2.5 rounded-lg disabled:opacity-40">5</button>
+                                <button @click="pressKey('6')" :disabled="isGameOver" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-lg font-bold py-2.5 rounded-lg disabled:opacity-40">6</button>
                                 <button @click="undo()" class="keypad-btn bg-yellow-600 hover:bg-yellow-500 text-xs font-bold py-2.5 rounded-lg text-yellow-50">UNDO</button>
 
-                                <button @click="pressKey('7')" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-lg font-bold py-2.5 rounded-lg">7</button>
-                                <button @click="pressKey('8')" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-lg font-bold py-2.5 rounded-lg">8</button>
-                                <button @click="pressKey('9')" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-lg font-bold py-2.5 rounded-lg">9</button>
+                                <button @click="pressKey('7')" :disabled="isGameOver" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-lg font-bold py-2.5 rounded-lg disabled:opacity-40">7</button>
+                                <button @click="pressKey('8')" :disabled="isGameOver" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-lg font-bold py-2.5 rounded-lg disabled:opacity-40">8</button>
+                                <button @click="pressKey('9')" :disabled="isGameOver" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-lg font-bold py-2.5 rounded-lg disabled:opacity-40">9</button>
                                 <div class="keypad-btn"></div>
 
-                                <button @click="pressKey('+')" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-lg font-bold py-2.5 rounded-lg text-yellow-300">+</button>
-                                <button @click="pressKey('0')" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-lg font-bold py-2.5 rounded-lg">0</button>
-                                <button @click="pressKey('*')" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-lg font-bold py-2.5 rounded-lg text-yellow-300">×</button>
+                                <button @click="pressKey('+')" :disabled="isGameOver" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-lg font-bold py-2.5 rounded-lg text-yellow-300 disabled:opacity-40">+</button>
+                                <button @click="pressKey('0')" :disabled="isGameOver" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-lg font-bold py-2.5 rounded-lg disabled:opacity-40">0</button>
+                                <button @click="pressKey('*')" :disabled="isGameOver" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-lg font-bold py-2.5 rounded-lg text-yellow-300 disabled:opacity-40">×</button>
                                 <div class="keypad-btn"></div>
 
-                                <button @click="setScore(0)" class="keypad-btn bg-yellow-600/80 hover:bg-yellow-500 text-xs font-bold py-2.5 rounded-lg text-yellow-50">MISS</button>
-                                <button @click="bustTurn()" class="keypad-btn bg-red-700/80 hover:bg-red-600 text-xs font-bold py-2.5 rounded-lg text-red-50">BUST</button>
-                                <button @click="submitX01()" class="keypad-btn bg-green-600 hover:bg-green-500 font-bold py-2.5 rounded-lg text-xs shadow transition-colors">ENTER</button>
+                                <button @click="setScore(0)" :disabled="isGameOver" class="keypad-btn bg-yellow-600/80 hover:bg-yellow-500 text-xs font-bold py-2.5 rounded-lg text-yellow-50 disabled:opacity-40">MISS</button>
+                                <button @click="bustTurn()" :disabled="isGameOver" class="keypad-btn bg-red-700/80 hover:bg-red-600 text-xs font-bold py-2.5 rounded-lg text-red-50 disabled:opacity-40">BUST</button>
+                                <button @click="submitX01()" :disabled="winMessage !== ''" class="keypad-btn bg-green-600 hover:bg-green-500 font-bold py-2.5 rounded-lg text-xs shadow transition-colors">ENTER</button>
                                 <div class="keypad-btn"></div>
 
-                                <!-- X01 Warning / Message Line (scaled 20%) -->
+                                <!-- X01 Message Line - displays messages in row after ENTER, persists until another button is clicked -->
                                 <div
-                                    class="col-span-4 text-center text-red-500 font-bold text-sm min-h-[1.5rem] flex items-center justify-center"
-                                    x-text="x01BustMessage || '\u00A0'"
+                                    class="col-span-4 text-center text-red-500 font-bold text-sm min-h-[1.5rem] flex items-center justify-center mb-2"
+                                    x-text="x01BustMessage || winMessage || '\u00A0'"
                                 ></div>
 
                                 <!-- Quick Common Score Preset Buttons (26, 41, 45, 60, 81, 100; scaled 20%) -->
@@ -525,7 +525,6 @@
             </div>
 
             <!-- BOTTOM UTILITY BAR -->
-            <div x-show="winMessage" class="text-center text-yellow-400 font-bold text-sm mb-2 px-2" x-text="winMessage"></div>
 
 <div class="flex justify-end items-center px-3 py-1 border-t border-slate-700 text-xs shrink-0">
                 <span class="text-slate-500">Scoreboard v0.1</span>
@@ -545,7 +544,7 @@
                 /* ------------------------------------------------------------------
                    APPLICATION STATE PROPERTIES
                    ------------------------------------------------------------------ */
-                screen: 'menu',                    // Current screen: 'menu' (setup) or 'scoring' (live match)
+                screen: 'menu',                    // Current screen: 'menu' (setup) or 'scoring' (live match)\n        isGameOver: false,           // Track if a leg/game has been won
                 gameMode: '501',                   // Selected game mode ('501', '301', 'Cricket', 'BowTie', 'Shanghai', etc.)
                 startingMode: 'Straight-in',       // X01 starting rule ('Straight-in' or 'Double-in')
                 matchType: 'Single Leg',           // Match structure type
@@ -590,7 +589,9 @@
                         cricketHitLimitMessage: this.cricketHitLimitMessage,
                         players: JSON.parse(JSON.stringify(this.players)),
                         lastTurn: this.lastTurn ? { ...this.lastTurn } : null,
-                        shanghaiRoundIndex: this.shanghaiRoundIndex
+                        shanghaiRoundIndex: this.shanghaiRoundIndex,
+                        isGameOver: this.isGameOver,
+                        winMessage: this.winMessage
                     });
                 },
 
@@ -613,6 +614,8 @@
                     this.players = JSON.parse(JSON.stringify(snapshot.players));
                     this.lastTurn = snapshot.lastTurn ? { ...snapshot.lastTurn } : null;
                     this.shanghaiRoundIndex = snapshot.shanghaiRoundIndex ?? 0;
+                    this.isGameOver = snapshot.isGameOver ?? false;
+                    this.winMessage = snapshot.winMessage || '';
                 },
 
                 /**
@@ -633,7 +636,9 @@
                         cricketHitLimitMessage: this.cricketHitLimitMessage || '',
                         players: JSON.parse(JSON.stringify(this.players)),
                         lastTurn: this.lastTurn ? { ...this.lastTurn } : null,
-                        shanghaiRoundIndex: this.shanghaiRoundIndex ?? 0
+                        shanghaiRoundIndex: this.shanghaiRoundIndex ?? 0,
+                        isGameOver: this.isGameOver,
+                        winMessage: this.winMessage || ''
                     };
                 },
 
@@ -655,6 +660,8 @@
                     this.x01BustMessage = '';
                     this.bowTieMessage = '';
                     this.shanghaiMessage = '';
+                    this.winMessage = '';
+                    this.isGameOver = false;  // Re-enable all buttons after undo
                 },
 
                 /* ------------------------------------------------------------------
@@ -695,7 +702,7 @@
                     if (this.isBowTieGameMode() || this.isShanghaiGameMode()) return 15;
                     if (this.isX01GameMode()) return 4;
                     if (this.isThreeWayCricketGameMode()) return 3;
-                    return 2;
+                    return 6;  // Standard Cricket: up to 6 players
                 },
 
                 /** Returns an array [1, 2, ..., max] for the player count selector */
@@ -708,9 +715,7 @@
                 getPlayerSlots() {
                     const count = this.isThreeWayCricketGameMode()
                         ? 3
-                        : (this.isStandardCricketGameMode()
-                            ? 2
-                            : Math.min(this.getMaxPlayerCount(), Math.max(1, Number(this.playerCount) || 2)));
+                        : Math.min(this.getMaxPlayerCount(), Math.max(1, Number(this.playerCount) || 2));
                     return Array.from({ length: count }, (_, index) => ({ 
                         index, 
                         name: this.players[index]?.name || `P${index + 1}` 
@@ -796,9 +801,7 @@
                     this.cricketHitLimitMessage = '';
                     const count = this.isThreeWayCricketGameMode()
                         ? 3
-                        : (this.isStandardCricketGameMode()
-                            ? 2
-                            : Math.min(this.getMaxPlayerCount(), Math.max(1, Number(this.playerCount) || 2)));
+                        : Math.min(this.getMaxPlayerCount(), Math.max(1, Number(this.playerCount) || 2));
                     const existingPlayers = Array.isArray(this.players) ? this.players : [];
                     this.players = Array.from({ length: count }, (_, index) => {
                         const existing = existingPlayers[index];
@@ -862,9 +865,11 @@
                  */
                 resetMatch() {
                     this.screen = 'menu';
+                    this.isGameOver = false;  // Reset game over state
                     this.x01BustMessage = '';
                     this.bowTieMessage = '';
                     this.cricketHitLimitMessage = '';
+                    this.winMessage = '';
                 },
 
                 /* ------------------------------------------------------------------
@@ -902,7 +907,6 @@
                         return;
                     }
                     this.saveUndoState();
-                    this.shanghaiMessage = '';
                     const target = this.shanghaiRoundIndex + 1;
                     let points = 0;
                     if (type === 'single') points = target;
@@ -973,6 +977,17 @@
                             // Miss target 8: player is eliminated from remaining rounds
                             p.shanghaiEliminated = true;
                             this.shanghaiMessage = `${p.name} missed target 8 — ELIMINATED!`;
+                            // In a 2-player game, if one player misses target 8, the other player wins
+                            if (this.players.length === 2) {
+                                const otherIdx = this.activePlayer === 0 ? 1 : 0;
+                                const other = this.players[otherIdx];
+                                if (!other.shanghaiEliminated) {
+                                    this.winMessage = `${other.name} WINS! Opponent missed target 8. Click New Match to start a new game.`;
+                                    this.isGameOver = true;
+                                    this.saveUndoStateSnapshot();
+                                    return;
+                                }
+                            }
                         }
                     } else {
                         this.shanghaiMessage = '';
@@ -998,7 +1013,19 @@
                     // If we wrapped back around to player 0, a full round cycle was completed
                     if (nextPlayer === 0 || nextPlayer <= this.activePlayer) {
                         this.shanghaiRoundIndex += 1;
-                        if (!preserveMessage) this.shanghaiMessage = '';
+                        // Remove any message shown for the round that just ended so the
+                        // target warning (rounds 3, 5, 8) is cleared once the round target
+                        // moves to the next number.
+                        this.shanghaiMessage = '';
+                        // Show target-specific warning messages in the row above ENTER
+                        const newTarget = this.shanghaiRoundIndex + 1;
+                        if (newTarget === 3) {
+                            this.shanghaiMessage = 'If you miss a 3, your score goes to zero!';
+                        } else if (newTarget === 5) {
+                            this.shanghaiMessage = 'If you miss a 5, your score will be cut in half!';
+                        } else if (newTarget === 8) {
+                            this.shanghaiMessage = 'If you miss an 8, you will be out of the game!';
+                        }
 
                         // Check game over (all 10 rounds done)
                         if (this.shanghaiRoundIndex >= 10) {
@@ -1009,6 +1036,7 @@
                             if (winner) {
                                     this.winMessage = `🏆 ${winner.name} wins Shanghai with ${winner.shanghaiScore} points! Click New Match to start a new game.`;
                                     setTimeout(() => {
+                        this.isGameOver = true;
                                         this.startShanghaiNewGame();
                                         this.winMessage = '';
                                     }, 1400);
@@ -1034,6 +1062,7 @@
                                 if (winner) {
                                     this.winMessage = `🏆 ${winner.name} wins Shanghai with ${winner.shanghaiScore} points! Click New Match to start a new game.`;
                                     setTimeout(() => {
+                        this.isGameOver = true;
                                         this.startShanghaiNewGame();
                                         this.winMessage = '';
                                     }, 1400);
@@ -1324,6 +1353,7 @@
                         if (winner) {
                             this.winMessage = `${winner.name} wins BowTie with ${winner.bowTieScore} points! Click New Match to start a new game.`;
                             // Show the win message in the message space, then reset for another game
+                        this.isGameOver = true;
                             setTimeout(() => {
                                 this.players = this.players.map((pl) => ({
                                     ...pl,
@@ -1350,6 +1380,9 @@
                  * Supports both BowTie and X01 active inputs.
                  */
                 pressKey(val) {
+if (this.isGameOver) {
+                        return;
+                    }
                     if (this.isBowTieGameMode()) {
                         this.bowTieMessage = '';
                         if (val === 'back') {
@@ -1377,7 +1410,6 @@
                     // X01 Keypad Input Handling
                     if (val === 'back') {
                         this.currentTurnScore = this.currentTurnScore.slice(0, -1);
-                        this.x01BustMessage = '';
                         return;
                     }
 
@@ -1395,7 +1427,6 @@
                         if (current === '0' && sanitized === '0') return;
                     }
 
-                    this.x01BustMessage = '';
                     this.currentTurnScore += sanitized;
                 },
 
@@ -1423,12 +1454,19 @@
 
                 /** Computes new remaining score preview for the active player, indicating 'Bust' if invalid */
                 newScorePreview() {
+                    const p = this.players[this.activePlayer];
                     if (!this.currentTurnScore) {
-                        return this.players[this.activePlayer].score;
+                        return p.score;
                     }
 
                     const total = this.evaluateTurnScore();
-                    const next = this.players[this.activePlayer].score - total;
+                    const next = p.score - total;
+                    // A score that exactly reaches 0 is a leg win, not a bust.
+                    // Once the leg is won, never show 'Bust' in the new score box.
+                    if (p.score === 0) {
+                        return 0;
+                    }
+                    // Bust only when the remaining score would drop below 0 or land on 1.
                     if (next < 0 || next === 1) {
                         return 'Bust';
                     }
@@ -1468,7 +1506,7 @@
                         pts = 0; // Turn scores 0 points on bust
                         this.x01BustMessage = 'You Busted....use UNDO to correct this if appropriate.';
                     } else {
-                        this.x01BustMessage = '';
+                        // Message persists until another button is clicked (ENTER or UNDO)
                     }
 
                     this.lastTurn = { player: actingPlayer, pts: pts };
@@ -1478,21 +1516,9 @@
                     // Leg Win Condition: Player reaches exactly 0
                     if (p.score === 0) {
                         this.winMessage = `${p.name} WINS THE LEG! Click New Match to start a new game.`;
-                        // Show the win message in the message space, then start a new leg
-                        setTimeout(() => {
-                            const startingScore = this.getStartingScore();
-                            this.players = this.players.map((pl, i) => ({
-                                ...pl,
-                                score: startingScore,
-                                history: [],
-                                turnDarts: 0
-                            }));
-                            this.activePlayer = 0;
-                            this.currentTurnScore = '';
-                            this.x01BustMessage = '';
-                            this.winMessage = '';
-                            this.undoStack = [this.saveUndoStateSnapshot()];
-                        }, 1400);
+                        this.isGameOver = true;  // Disable buttons after win
+                        // Show the win message in the message space - persists until NEW MATCH is hit
+                        this.saveUndoStateSnapshot();
                         return;
                     }
 
@@ -1698,9 +1724,9 @@
                     // In 3-Way Cricket, when a player has closed a number target, other players can NOT score on that target.
                     // Therefore, active player can only score points if NO other player has closed it (all opponents < 3 marks).
                     // In Standard 2-player Cricket, player scores if the opponent has < 3 marks.
-                    const canScore = this.isThreeWayCricketGameMode()
-                        ? otherPlayers.every((opp) => (opp.marks[target] || 0) < 3)
-                        : otherPlayers.some((opp) => (opp.marks[target] || 0) < 3);
+                    // Only the first user to close a target can get extra points,
+                    // and only while ALL other users do not have that target closed.
+                    const canScore = otherPlayers.every((opp) => (opp.marks[target] || 0) < 3);
 
                     // 1. Closed target check:
                     // A target click cannot score points or add marks if:
@@ -1765,6 +1791,23 @@
                     this.cricketHitLimitMessage = '';
                     const current = this.players[this.activePlayer];
                     if (current) current.turnDarts = 0;
+
+                    // Cricket win condition: all targets closed AND score >= all other players
+                    const cricketTargets = [20, 19, 18, 17, 16, 15, 'B'];
+                    const allClosed = cricketTargets.every(t => (current.marks[t] || 0) >= 3);
+                    if (allClosed) {
+                        const currentScore = Number(current.cricketScore) || 0;
+                        const allOthersLowerOrEqual = this.players.every((p, idx) =>
+                            idx === this.activePlayer || (Number(p.cricketScore) || 0) <= currentScore
+                        );
+                        if (allOthersLowerOrEqual) {
+                            this.winMessage = `${current.name} WINS THE MATCH! Click New Match to start a new game.`;
+                            this.isGameOver = true;
+                            this.saveUndoStateSnapshot();
+                            return;
+                        }
+                    }
+
                     this.activePlayer = (this.activePlayer + 1) % this.players.length;
                 },
 
