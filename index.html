@@ -1,882 +1,1867 @@
-import tkinter as tk
-from tkinter import ttk, messagebox
-from ttkthemes import ThemedStyle
-import os
-import urllib.request
-from PIL import Image, ImageTk
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Dart Games - Scoreboard</title>
+    <!-- Tailwind CSS CDN for reactive, responsive utility classes -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Alpine.js CDN for lightweight, reactive component state management -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <style>
+        /* ==========================================================================
+           RESPONSIVE VIEWPORT & TOUCH STYLES
+           ========================================================================== */
+        /* Prevent elastic bouncing/overscroll on mobile browsers and disable text selection */
+        body { 
+            overscroll-behavior-y: none; 
+            -webkit-user-select: none; 
+            user-select: none; 
+            min-height: 100vh; 
+            min-height: 100dvh; 
+        }
 
-class DartCheckoutApp:
-    def __init__(self, root):
-        self.root = root
-        self.root.title("Darts Checkout Calculator")
+        /* Optimize touch response times on interactive elements */
+        button, input, select { 
+            touch-action: manipulation; 
+        }
 
-        # Game settings: allow 301 or 501 and select 1 or 2 players for 301; 501 always 2 players
-        self.game_var = tk.IntVar(value=301)
-        # default to 2 players for backwards compatibility
-        self.players_var = tk.IntVar(value=2)
-        self.player_scores = [self.game_var.get(), self.game_var.get()]
-        self.current_player = 0
-        
-        # Apply theme and configure font sizes
-        style = ThemedStyle(self.root)
-        style.set_theme("arc")
-        style.configure('.', font=('Helvetica', 16))
-        style.configure('TLabel', font=('Helvetica', 18))
-        style.configure('TButton', font=('Helvetica', 18))
-        style.configure('TEntry', font=('Helvetica', 18))
-        # keep style object for later dynamic changes
-        self.style = style
+        /* Tactile feedback animation for on-screen numeric keypad buttons */
+        .keypad-btn { 
+            transition: transform 90ms ease; 
+        }
+        .keypad-btn:active { 
+            transform: scale(0.95); 
+        }
 
-        # define styles for active/inactive player columns
-        try:
-            # ensure labelframe base matches theme background
-            style.configure('Active.TLabelframe', background=style.lookup('.', 'background') or self.root.cget('bg'))
-            # label color for active/inactive headers
-            style.configure('Active.TLabelframe.Label', foreground='#ff0000')
-            style.configure('Inactive.TLabelframe.Label', foreground='black')
-        except Exception:
-            # ignore if theme doesn't support Labelframe style config
-            pass
-        
-        # Top controls (game selection + player display)
-        self.top_frame = ttk.Frame(root, padding="8")
-        self.top_frame.grid(row=0, column=0, sticky='ew')
+        /* Compact sizing overrides for mobile / small screen viewports */
+        @media (max-width: 640px) {
+            .game-board-area { padding: 0.5rem !important; }
+            .compact-keypad { padding: 0.5rem !important; }
+            .compact-keypad .keypad-btn { padding-top: 0.375rem !important; padding-bottom: 0.375rem !important; }
+            .mobile-menu { padding: 1rem !important; justify-content: flex-start !important; }
+            .mobile-menu h2 { margin-bottom: 0.75rem !important; }
+            .mobile-menu select, .mobile-menu input { margin-bottom: 0.5rem !important; }
+        }
 
-        ttk.Label(self.top_frame, text="Game:", font=('Helvetica', 16)).grid(row=0, column=0, sticky='w')
-        ttk.Radiobutton(self.top_frame, text="301", variable=self.game_var, value=301, command=self.on_game_change).grid(row=0, column=1)
-        ttk.Radiobutton(self.top_frame, text="501", variable=self.game_var, value=501, command=self.on_game_change).grid(row=0, column=2)
-        ttk.Radiobutton(self.top_frame, text="Cricket", variable=self.game_var, value=0, command=self.on_game_change).grid(row=0, column=3)
+        /* Compact vertical paddings for short viewports (landscape mobile, compact tablets) */
+        @media (max-height: 700px) {
+            .game-board-area { padding-top: 0.25rem !important; padding-bottom: 0.25rem !important; }
+            .compact-keypad { padding-top: 0.375rem !important; padding-bottom: 0.375rem !important; }
+            .compact-keypad .keypad-btn { padding-top: 0.25rem !important; padding-bottom: 0.25rem !important; }
+        }
+    </style>
+</head>
+<body class="bg-slate-900 text-white font-sans text-lg h-screen h-[100dvh] flex flex-col overflow-hidden" x-data="dartApp()" x-init="setupPlayerNames()">
 
-        # Player count selection (only selectable for 301; forced 2 for 501)
-        self.rb_1player = ttk.Radiobutton(self.top_frame, text="1 Player", variable=self.players_var, value=1, command=self.on_players_change, font=('Helvetica', 16))
-        self.rb_1player.grid(row=0, column=5, padx=(20, 2))
-        self.rb_2player = ttk.Radiobutton(self.top_frame, text="2 Players", variable=self.players_var, value=2, command=self.on_players_change, font=('Helvetica', 16))
-        self.rb_2player.grid(row=0, column=6, padx=2)
+    <!-- ========================================================================
+         HEADER BAR
+         Displays the current match mode / rules and quick navigation actions
+         ======================================================================== -->
+    <header class="bg-slate-800 border-b border-slate-700 px-4 py-2.5 flex justify-between items-center shrink-0">
+        <div class="flex items-center space-x-3">
+            <!-- Dynamic title: Shows mode and starting rules for X01, or game name for Cricket/BowTie/Shanghai (scaled by 20%) -->
+            <h1 class="text-2xl font-bold truncate" x-text="isX01GameMode() ? '🎯 ' + gameMode + ' - ' + startingMode : (isShanghaiGameMode() ? '🎯 Shanghai - Round ' + (shanghaiRoundIndex + 1) + ' (Target: ' + (shanghaiRoundIndex + 1) + ')' : '🎯 ' + gameMode)"></h1>
+        </div>
+        <div class="flex items-center space-x-2">
+            <!-- New Match Button: Navigates back to setup/menu screen to start a fresh game -->
+            <button @click="resetMatch()" class="bg-red-600 hover:bg-red-500 text-base px-4 py-2 rounded font-bold transition-colors shadow">New Match</button>
+            <!-- HELP Button: Opens README.md located in the same directory as this HTML file -->
+            <a href="README.html" target="_blank" rel="noopener noreferrer" class="bg-red-700 hover:bg-red-600 text-base px-4 py-2 rounded font-bold transition-colors flex items-center justify-center text-white no-underline border border-red-400 shadow">HELP</a>
+        </div>
+    </header>
 
-        # Ensure space to the right so controls align
-        try:
-            self.top_frame.grid_columnconfigure(7, weight=1)
-        except Exception:
-            pass
+    <!-- ========================================================================
+         MAIN CONTAINER
+         Houses either the Setup/Menu view or the active Live Scoring interface
+         ======================================================================== -->
+    <main class="flex-1 flex flex-col overflow-hidden relative">
 
-        # Player score display (moved right of game radios)
-        self.player_frame = ttk.Frame(self.top_frame)
-        self.player_frame.grid(row=0, column=4, padx=20)
-        self.player1_label = ttk.Label(self.player_frame, text=f"P1: {self.player_scores[0]}", font=('Helvetica', 16, 'bold'))
-        self.player1_label.grid(row=0, column=0, padx=5)
-        self.player1_label.bind('<Button-1>', lambda e: self.set_current_player(0))
-        self.player2_label = ttk.Label(self.player_frame, text=f"P2: {self.player_scores[1]}", font=('Helvetica', 16))
-        self.player2_label.grid(row=0, column=1, padx=5)
-        self.player2_label.bind('<Button-1>', lambda e: self.set_current_player(1))
-
-        # Attempt to download a public-domain dartboard image and show it at top-right
-        try:
-            assets_dir = os.path.join(os.path.dirname(__file__), 'assets')
-        except Exception:
-            assets_dir = 'assets'
-        try:
-            os.makedirs(assets_dir, exist_ok=True)
-        except Exception:
-            pass
-        dart_path = os.path.join(assets_dir, 'dartboard.png')
-        if not os.path.exists(dart_path):
-            # candidate public-domain / freely-licensed images (Wikimedia thumbnails)
-            candidates = [
-                'https://upload.wikimedia.org/wikipedia/commons/thumb/7/73/Dartboard.svg/200px-Dartboard.svg.png',
-                'https://upload.wikimedia.org/wikipedia/commons/thumb/5/5a/Standard_dartboard.svg/200px-Standard_dartboard.svg.png',
-            ]
-            got = False
-            for url in candidates:
-                try:
-                    urllib.request.urlretrieve(url, dart_path)
-                    got = True
-                    break
-                except Exception:
-                    continue
-            if not got and os.path.exists(dart_path):
-                got = True
-        # load and show if available
-        try:
-            if os.path.exists(dart_path):
-                img = Image.open(dart_path)
-                img = img.resize((64, 64), Image.LANCZOS)
-                self.dart_image = ImageTk.PhotoImage(img)
-                self.dart_label = tk.Label(self.top_frame, image=self.dart_image, bd=0, relief='flat')
-                # place at far right
-                try:
-                    self.dart_label.grid(row=0, column=7, padx=4, sticky='e')
-                except Exception:
-                    self.dart_label.grid(row=0, column=6, padx=4, sticky='e')
-        except Exception:
-            pass
-
-        # Main frame
-        self.main_frame = ttk.Frame(root, padding="20")
-        self.main_frame.grid(row=1, column=0)
-        # make middle column flexible so left/right buttons have space between
-        try:
-            self.main_frame.grid_columnconfigure(1, weight=1)
-        except Exception:
-            pass
-
-        # history for undo: list of dicts {'player': idx, 'prev': score, 'score': thrown, 'switched': bool}
-        self.history = []
-
-        # cricket data structures
-        self.cricket_vals = [20,19,18,17,16,15,25]
-        # accumulated per-label score (value increments) per player
-        self.cricket_accum = [[0]*len(self.cricket_vals), [0]*len(self.cricket_vals)]
-
-        # Score display (centered across the frame)
-        self.score_label = ttk.Label(self.main_frame, text=f"Player {self.current_player+1} Score: {self.player_scores[self.current_player]}", font=('Helvetica', 32, 'bold'))
-        self.score_label.grid(row=0, column=0, columnspan=3, pady=10)
-
-        # Player columns (two columns under the main score)
-        self.players_cols_frame = ttk.Frame(self.main_frame)
-        self.players_cols_frame.grid(row=1, column=0, columnspan=3, pady=(4,12), sticky='ew')
-        # create spacer columns so the two player columns sit centered
-        self.players_cols_frame.grid_columnconfigure(0, weight=1)
-        self.players_cols_frame.grid_columnconfigure(3, weight=1)
-
-        # Player 1 column (placed in middle-left column)
-        self.p1_frame = ttk.LabelFrame(self.players_cols_frame, text="Player 1", padding=8)
-        self.p1_frame.grid(row=0, column=1, padx=8, sticky='n')
-        self.p1_current_label = ttk.Label(self.p1_frame, text=f"Current: {self.player_scores[0]}", font=('Helvetica', 16, 'bold'))
-        self.p1_current_label.grid(row=0, column=0, sticky='w')
-        # replace listbox with a stack of centered labels for fixed 6 entries
-        self.p1_scores_frame = ttk.Frame(self.p1_frame)
-        self.p1_scores_frame.grid(row=1, column=0, pady=(6,0))
-        self.p1_score_labels = []
-        for i in range(6):
-            lbl = ttk.Label(self.p1_scores_frame, text='', font=('Helvetica', 18), anchor='center', width=10)
-            lbl.grid(row=i, column=0, pady=1)
-            self.p1_score_labels.append(lbl)
-        # cricket UI rows (hidden unless cricket mode active)
-        self.p1_cricket_frame = ttk.Frame(self.p1_frame)
-        self.p1_cricket_rows = []
-        # create 7 rows for 20..15 and B
-        cricket_vals = [20,19,18,17,16,15,25]
-        for i, val in enumerate(cricket_vals):
-            rowf = ttk.Frame(self.p1_cricket_frame)
-            lbl = ttk.Label(rowf, text=str(val) if val!=25 else 'B', font=('Helvetica', 18), width=4)
-            lbl.grid(row=0, column=0)
-            # score display label (accumulated score)
-            score_lbl = ttk.Label(rowf, text='', font=('Helvetica', 18), width=8, anchor='center')
-            score_lbl.grid(row=0, column=1, padx=(6,0))
-            # make the value label and the score cell clickable
-            lbl.bind('<Button-1>', lambda e, p=0, idx=i: self.cricket_click(p, idx))
-            score_lbl.bind('<Button-1>', lambda e, p=0, idx=i: self.cricket_click(p, idx))
-            try:
-                score_lbl.config(cursor='hand2')
-            except Exception:
-                pass
-            rowf.grid(row=i, column=0, pady=2)
-            self.p1_cricket_rows.append((lbl, score_lbl))
-
-        # Player 2 column (placed in middle-right column)
-        self.p2_frame = ttk.LabelFrame(self.players_cols_frame, text="Player 2", padding=8)
-        self.p2_frame.grid(row=0, column=2, padx=8, sticky='n')
-        self.p2_current_label = ttk.Label(self.p2_frame, text=f"Current: {self.player_scores[1]}", font=('Helvetica', 16, 'bold'))
-        self.p2_current_label.grid(row=0, column=0, sticky='w')
-        # replace listbox with a stack of centered labels for fixed 6 entries
-        self.p2_scores_frame = ttk.Frame(self.p2_frame)
-        self.p2_scores_frame.grid(row=1, column=0, pady=(6,0))
-        self.p2_score_labels = []
-        for i in range(6):
-            lbl = ttk.Label(self.p2_scores_frame, text='', font=('Helvetica', 18), anchor='center', width=10)
-            lbl.grid(row=i, column=0, pady=1)
-            self.p2_score_labels.append(lbl)
-        # cricket UI rows
-        self.p2_cricket_frame = ttk.Frame(self.p2_frame)
-        self.p2_cricket_rows = []
-        for i, val in enumerate(cricket_vals):
-            rowf = ttk.Frame(self.p2_cricket_frame)
-            lbl = ttk.Label(rowf, text=str(val) if val!=25 else 'B', font=('Helvetica', 18), width=4)
-            lbl.grid(row=0, column=0)
-            score_lbl = ttk.Label(rowf, text='', font=('Helvetica', 18), width=8, anchor='center')
-            score_lbl.grid(row=0, column=1, padx=(6,0))
-            lbl.bind('<Button-1>', lambda e, p=1, idx=i: self.cricket_click(p, idx))
-            score_lbl.bind('<Button-1>', lambda e, p=1, idx=i: self.cricket_click(p, idx))
-            try:
-                score_lbl.config(cursor='hand2')
-            except Exception:
-                pass
-            rowf.grid(row=i, column=0, pady=2)
-            self.p2_cricket_rows.append((lbl, score_lbl))
-
-        # Score entry
-        # Entry label left-justified to the frame
-        self.entry_label = ttk.Label(self.main_frame, text="Enter throw score:", font=('Helvetica', 18))
-        self.entry_label.grid(row=3, column=0, sticky='w', padx=5)
-
-        self.score_entry = ttk.Entry(self.main_frame, width=10, font=('Helvetica', 20))
-        self.score_entry.grid(row=3, column=1, sticky='w', padx=(5,2))
-        # Make the entry focused and selectable when clicked or focused
-        self.score_entry.focus_set()
-        self.score_entry.bind('<Button-1>', self.on_entry_click)
-        self.score_entry.bind('<FocusIn>', lambda e: self.score_entry.select_range(0, tk.END))
-        self.score_entry.bind('<Return>', self.process_throw)
-        # Numeric keypad Enter should act the same as the main Enter
-        self.score_entry.bind('<KP_Enter>', self.process_throw)
-        # Also allow pressing Enter anywhere in the window to submit when a value exists
-        self.root.bind('<Return>', self.on_enter_key)
-        self.root.bind('<KP_Enter>', self.on_enter_key)
-
-        # (Single-line submit removed — mid-area submit will be used instead)
-
-        # Checkout suggestions
-        self.checkout_frame = ttk.LabelFrame(self.main_frame, text="Possible Checkouts", padding="10")
-        # move checkout down one row to accommodate submit under input
-        self.checkout_frame.grid(row=6, column=0, columnspan=3, pady=10, sticky='ew')
-
-        self.checkout_text = tk.Text(self.checkout_frame, height=6, width=40, state='disabled', 
-                        wrap='none', font=('Helvetica', 20))
-        self.checkout_text.grid(row=0, column=0)
-
-        scrollbar = ttk.Scrollbar(self.checkout_frame, orient='vertical', command=self.checkout_text.yview)
-        scrollbar.grid(row=0, column=1, sticky='ns')
-        self.checkout_text.config(yscrollcommand=scrollbar.set)
-
-        # Reset and Quit buttons (placed side-by-side) with subtle colors
-        self.reset_button = tk.Button(self.main_frame, text="Reset Game", command=self.reset_game,
-                  bg='#ffecb0', fg='black', font=('Helvetica', 16))
-        # left-justify reset
-        self.reset_button.grid(row=7, column=0, pady=6, sticky='w', padx=(0,12))
-
-        self.quit_button = tk.Button(self.main_frame, text="Quit", command=self.quit_game,
-             bg='#ffffff', fg='black', font=('Helvetica', 16))
-        # right-justify quit with clear space between
-        self.quit_button.grid(row=7, column=2, pady=6, sticky='e', padx=(12,0))
-
-        # Centered area for Undo / Next buttons
-        self.mid_buttons_frame = ttk.Frame(self.main_frame)
-        # move mid buttons one row down since submit occupies row 4
-        self.mid_buttons_frame.grid(row=5, column=0, columnspan=3, pady=(4,10))
-        try:
-            self.main_frame.grid_columnconfigure(0, weight=1)
-            self.main_frame.grid_columnconfigure(1, weight=1)
-            self.main_frame.grid_columnconfigure(2, weight=1)
-        except Exception:
-            pass
-
-        self.undo_button = tk.Button(self.mid_buttons_frame, text="Undo", command=self.undo_last, bg='#d9534f', fg='white', font=('Helvetica', 16, 'bold'), width=8)
-        self.undo_button.grid(row=0, column=0, padx=8)
-        # Secondary submit shown beside Undo in the mid buttons area (for quick access)
-        self.submit_mid = tk.Button(self.mid_buttons_frame, text="Submit Throw", command=self.process_throw, bg='#5cb85c', fg='white', font=('Helvetica', 16, 'bold'), width=12)
-        self.submit_mid.grid(row=0, column=1, padx=8)
-        # Keep backward compatibility: treat mid-area submit as the primary submit
-        self.submit_button = self.submit_mid
-
-        # Next button for cricket mode (toggles player) - hidden unless cricket active
-        self.next_button = tk.Button(self.mid_buttons_frame, text="Next", command=self.next_player,
-            bg='#5bc0de', fg='white', font=('Helvetica', 18, 'bold'), width=8)
-        # place Next to the right of the mid submit
-        self.next_button.grid(row=0, column=2, padx=8)
-        # hide by default
-        try:
-            self.next_button.grid_remove()
-        except Exception:
-            pass
-
-        # populate player columns initially
-        self.update_player_columns()
-
-        self.update_checkout_suggestions()
-    
-    def process_throw(self, event=None):
-        # only allow processing throws in 301 or 501 modes
-        if self.game_var.get() not in (301, 501):
-            return
-        try:
-            score = int(self.score_entry.get())
-            if score == 0:
-                self.root.destroy()
-                return
-
-            player = self.current_player
-            prev = self.player_scores[player]
-            # validation
-            if score < 0 or score > 180 or score > prev:
-                messagebox.showerror("Invalid Score", "Must be between 1-180 and <= remaining score")
-                return
-
-            new = prev - score
-
-            # win
-            if new == 0:
-                # push move to history so undo could be possible before reset? we'll reset which clears history
-                self.reset_game()
-                return
-
-            # if remaining is less than 2, treat as bust (cannot finish)
-            if new < 2:
-                messagebox.showinfo("Player Busted", "Player Busted")
-                return
-
-            # bust
-            if new < 0:
-                messagebox.showinfo("Bust!", "Score went below zero. Throw canceled.")
-                return
-
-            # valid throw: record history and apply
-            switched = (self.players_var.get() == 2)
-            self.history.append({'player': player, 'prev': prev, 'score': score, 'switched': switched})
-            self.player_scores[player] = new
-            self.score_label.config(text=f"Player {player+1} Score: {self.player_scores[player]}")
-            self.score_entry.delete(0, 'end')
-
-            # After a valid throw, update display and switch player if two players
-            self.update_player_display()
-            if switched:
-                self.switch_player()
-
-            self.update_checkout_suggestions()
+        <!-- ====================================================================
+             1. SETUP / MENU SCREEN (screen === 'menu')
+             Allows players to configure Game Mode, Starting In rules, Player Count,
+             and customize Player Names before starting the match.
+             ==================================================================== -->
+        <div x-show="screen === 'menu'" class="mobile-menu absolute inset-0 bg-slate-900 z-20 p-6 flex flex-col justify-center max-w-md mx-auto w-full overflow-y-auto">
+            <h2 class="text-2xl font-black mb-6 text-center text-red-500 tracking-wider">DART GAMES</h2>
             
-        except ValueError:
-            messagebox.showerror("Invalid Input", "Please enter a valid number")
+            <!-- Game Mode Selector: X01 (101-601), Standard Cricket, 3-Way Cricket, BowTie, Shanghai -->
+            <label class="text-sm text-slate-400 mb-1">Game Mode</label>
+            <select x-model="gameMode" @change="handleGameModeChange()" class="bg-slate-800 border border-slate-700 rounded p-3 mb-4 text-white font-bold focus:border-red-500 outline-none">
+                <option value="601">601</option>
+                <option value="501">501</option>
+                <option value="401">401</option>
+                <option value="301">301</option>
+                <option value="201">201</option>
+                <option value="101">101</option>
+                <option value="Cricket">Standard Cricket</option>
+                <option value="3-Way Cricket">3-Way Cricket</option>
+                <option value="BowTie">BowTie</option>
+                <option value="Shanghai">Shanghai</option>
+            </select>
 
-    def undo_last(self):
-        if not self.history:
-            messagebox.showinfo("Undo", "No moves to undo")
-            return
-        last = self.history.pop()
-        typ = last.get('type', 'throw')
-        if typ == 'throw':
-            idx = last['player']
-            self.player_scores[idx] = last['prev']
-            self.current_player = idx
-        elif typ == 'cricket':
-            idx = last['player']
-            label = last['label']
-            # restore accum
-            self.cricket_accum[idx][label] = last.get('prev_accum', 0)
-            # subtract any score added
-            score_added = last.get('score_added', 0)
-            if score_added:
-                try:
-                    self.player_scores[idx] -= score_added
-                except Exception:
-                    pass
-            # restore current player to the clicking player
-            self.current_player = idx
-        # refresh displays
-        self.update_player_display()
-        self.update_checkout_suggestions()
-        self.update_player_columns()
-        self.update_player_columns()
+            <!-- Starting Mode Selector (Straight-in vs Double-in) for X01 game modes -->
+            <template x-if="isX01GameMode()">
+                <div>
+                    <label class="text-sm text-slate-400 mb-1">Starting Mode</label>
+                    <select x-model="startingMode" class="bg-slate-800 border border-slate-700 rounded p-3 mb-4 text-white font-bold w-full focus:border-red-500 outline-none">
+                        <option value="Straight-in">Straight-in</option>
+                        <option value="Double-in">Double-in</option>
+                    </select>
+                </div>
+            </template>
 
-    def quit_game(self):
-        # gracefully terminate
-        try:
-            self.root.destroy()
-        except Exception:
-            pass
+            <!-- Player Count Selector for games supporting variable counts (X01: 1-4, BowTie: 1-15, Shanghai: 1-15) -->
+            <template x-if="isX01GameMode() || isBowTieGameMode() || isShanghaiGameMode()">
+                <div>
+                    <label class="text-sm text-slate-400 mb-1">Players</label>
+                    <select x-model="playerCount" @change="setupPlayerNames(false)" class="bg-slate-800 border border-slate-700 rounded p-3 mb-4 text-white font-bold w-full focus:border-red-500 outline-none">
+                        <template x-for="n in getPlayerCountOptions()" :key="n">
+                            <option :value="n" x-text="n + ' Player' + (n === 1 ? '' : 's')"></option>
+                        </template>
+                    </select>
+                </div>
+            </template>
 
-    def on_entry_click(self, event):
-        try:
-            self.score_entry.focus_set()
-            self.score_entry.select_range(0, tk.END)
-        except Exception:
-            pass
+            <!-- Player Name Configuration Grid:
+                 Uses :key="gameMode + '-' + index" so when Game Mode changes, inputs re-mount
+                 cleanly with the default names (P1, P2, etc.) -->
+            <div :class="getPlayerNameSetupGridClasses()" class="grid gap-3 mb-4">
+                <template x-for="(slot, index) in getPlayerSlots()" :key="gameMode + '-' + index">
+                    <div>
+                        <label class="text-xs text-slate-400 mb-1 block" x-text="'Player ' + (index + 1) + ' Name'">Player Name</label>
+                        <input
+                            type="text"
+                            :maxlength="getPlayerNameMaxLength()"
+                            :value="players[index]?.name || ''"
+                            @input="setPlayerName(index, $event.target.value, $event)"
+                            class="bg-slate-800 border border-slate-700 rounded p-3 text-white font-bold w-full uppercase focus:border-red-500 outline-none"
+                        >
+                    </div>
+                </template>
+            </div>
 
-    def on_enter_key(self, event=None):
-        # Only allow Enter to submit in 301/501 modes
-        if self.game_var.get() not in (301, 501):
-            return
-        # If there's a value in the entry, treat Enter like clicking Submit
-        if self.score_entry.get().strip():
-            self.process_throw()
-        else:
-            # otherwise focus the entry so the user can type
-            try:
-                self.score_entry.focus_set()
-            except Exception:
-                pass
+            <!-- Start Match Action: Initializes players and switches view to live scoring -->
+            <button @click="startMatch()" class="w-full bg-red-600 hover:bg-red-500 font-black py-4 rounded-xl text-xl shadow-lg tracking-wide transition-colors">START MATCH</button>
+        </div>
 
-    def cricket_click(self, player_idx, label_idx):
-        # Only active in cricket mode
-        if self.game_var.get() != 0:
-            return
-        # Only allow the active player to record hits
-        if player_idx != self.current_player:
-            return
-        val = self.cricket_vals[label_idx]
-        prev_acc = self.cricket_accum[player_idx][label_idx]
-        prev_hits = prev_acc // val if val else 0
-        # increment accumulated score by label value
-        new_acc = prev_acc + val
-        self.cricket_accum[player_idx][label_idx] = new_acc
-        new_hits = new_acc // val if val else 0
+        <!-- ====================================================================
+             2. LIVE SCORING INTERFACE (screen === 'scoring')
+             Houses the scoreboard, active game matrix/guide, and game-specific keypad.
+             ==================================================================== -->
+        <div x-show="screen === 'scoring'" class="flex-1 flex flex-col h-full overflow-hidden">
+            
+            <!-- SCOREBOARD HEADER (Used for X01 and Cricket games; BowTie and Shanghai use custom layouts; scaled 20%) -->
+            <template x-if="!isBowTieGameMode() && !isShanghaiGameMode()">
+                <div :class="(isX01GameMode() ? 'grid-cols-' + players.length : 'grid ' + getPlayerGridClasses()) + ' bg-slate-800 border-b border-slate-700 text-center shrink-0 grid'" class="grid grid-cols-2">
+                    <template x-for="(player, index) in players" :key="index">
+                        <div
+                            :class="(activePlayer === index ? 'bg-slate-700/80 border-b-4 border-red-500' : 'opacity-70') + (isX01GameMode() ? ' p-2' : (isCricketGameMode() ? ' p-3' : ' p-3.5'))"
+                            class="transition-all border-r border-slate-700 last:border-r-0"
+                        >
+                            <!-- Player Name (scaled 20%) -->
+                            <div class="text-sm font-bold uppercase tracking-wider text-slate-300 truncate" x-text="player.name"></div>
+                            <!-- Current Score: Remaining points for X01, Cricket points for Cricket (scaled 20%) -->
+                            <div :class="(activePlayer === index ? 'font-black' : 'font-normal') + (isX01GameMode() ? ' text-[2.2rem] my-0.5' : (isCricketGameMode() ? ' text-[2.5rem] my-0.5' : ' text-[44px] my-1'))" x-text="isX01GameMode() ? player.score : player.cricketScore"></div>
+                            <!-- 3-Dart Running Average (X01 games only; scaled 20%) -->
+                            <template x-if="isX01GameMode()">
+                                <div class="text-xs text-slate-300">Avg: <span class="font-bold" x-text="getPlayerAvg(index)"></span></div>
+                            </template>
+                        </div>
+                    </template>
+                </div>
+            </template>
 
-        # determine if this click scores points: if this click produced an extra hit beyond 3
-        opponent_idx = 1 - player_idx
-        opp_hits = self.cricket_accum[opponent_idx][label_idx] // val
-        score_added = 0
-        if new_hits > 3 and opp_hits < 3:
-            # this click can add one label value to player's total
-            score_added = val
-            try:
-                self.player_scores[player_idx] += score_added
-            except Exception:
-                pass
+            <!-- DYNAMIC GAME BOARD / STATS DISPLAY AREA -->
+            <div class="game-board-area flex-1 p-1 sm:p-2 flex flex-col justify-start items-center overflow-y-auto min-h-0">
+                
+                <!-- X01 CHECKOUT GUIDE (scaled 20%)
+                     Suggests optimal 2-dart and 3-dart double-finish routes for remaining score <= 170 -->
+                <template x-if="isX01GameMode()">
+                    <div class="text-center mb-1">
+                        <div class="text-sm text-yellow-400 font-bold uppercase tracking-widest mb-0" x-show="checkoutInfo().oneDart || checkoutInfo().twoDart">Checkout Suggestion</div>
+                        <div class="mt-0.5 text-base text-slate-200" x-show="checkoutInfo().oneDart || checkoutInfo().twoDart || checkoutInfo().threeDart" x-text="`${checkoutInfo().oneDart ? '1 Dart: ' + checkoutInfo().oneDart : ''}${checkoutInfo().oneDart && (checkoutInfo().twoDart || checkoutInfo().threeDart) ? '   ---   ' : ''}${checkoutInfo().twoDart ? '2 Dart: ' + checkoutInfo().twoDart : ''}${checkoutInfo().twoDart && checkoutInfo().threeDart ? '   ---   ' : ''}${checkoutInfo().threeDart ? '3 Dart: ' + checkoutInfo().threeDart : ''}`"></div>
+                    </div>
+                </template>
 
-        # record to history for undo (type 'cricket')
-        self.history.append({'type': 'cricket', 'player': player_idx, 'label': label_idx,
-                             'prev_accum': prev_acc, 'score_added': score_added})
+                <!-- CRICKET MATRIX BOARD (scaled 20%)
+                     Displays marks for targets: 20, 19, 18, 17, 16, 15, and Bullseye (B).
+                     Includes Triple (T), Single (number), and Double (D) hit buttons. -->
+                <template x-if="isCricketGameMode()">
+                    <div class="w-full max-w-[538px] bg-slate-800 rounded-xl overflow-hidden border border-slate-700 text-lg mb-0 shadow">
+                        <!-- Column Headers: Player Names & Target Label (scaled 20%) -->
+                        <div class="grid text-center font-bold text-[32px] uppercase tracking-wide bg-slate-700 p-3" :style="'grid-template-columns: repeat(' + players.length + ', minmax(0, 1fr)) 1.2fr'">
+                            <template x-for="(player, index) in players" :key="index">
+                                <div class="px-1"><span x-text="player.name"></span></div>
+                            </template>
+                            <div class="text-center">Target</div>
+                        </div>
 
-        # update displays
-        self.update_player_display()
-        self.update_player_columns()
-        self.update_checkout_suggestions()
+                        <!-- Target Rows: Mark indicators and interactive hit buttons (scaled 20%) -->
+                        <template x-for="target in [20, 19, 18, 17, 16, 15, 'B']">
+                            <div class="grid px-2.5 py-0.5 text-center border-t border-slate-700 items-center font-mono font-bold gap-1" :style="'grid-template-columns: repeat(' + players.length + ', minmax(0, 1fr)) 1.2fr'">
+                                <!-- Player Marks Column: Displays -, /, X, or ⨷ (closed; scaled 20%) -->
+                                <template x-for="(player, index) in players" :key="index">
+                                    <div class="min-h-[48px] flex items-center justify-center text-red-400 text-[32px]">
+                                        <span x-text="renderMarks(player.marks[target])"></span>
+                                    </div>
+                                </template>
+                                <!-- Hit Controls Column: T (Triple), Target (Single), D (Double; scaled 20%) -->
+                                <div class="grid grid-cols-[34px_48px_34px] items-center justify-items-center justify-end gap-1.5 sm:gap-2.5 text-slate-200 bg-slate-900 py-1 rounded w-full ml-auto text-center">
+                                    <!-- Triple button (not available for Bullseye) -->
+                                    <template x-if="target !== 'B'">
+                                        <button @click="hitCricket(activePlayer, target, 3)" :disabled="isGameOver" class="w-[48px] h-[48px] bg-slate-700 hover:bg-slate-600 rounded text-[36px] flex items-center justify-center disabled:opacity-40">T</button>
+                                    </template>
+                                    <template x-if="target === 'B'">
+                                        <div class="w-[34px] h-[34px]"></div>
+                                    </template>
+                                    <!-- Single hit button (displays target number or 'B') -->
+                                    <button @click="hitCricket(activePlayer, target, 1)" :disabled="isGameOver" class="w-[56px] h-[44px] bg-slate-900 hover:bg-slate-700 rounded text-[36px] flex items-center justify-center disabled:opacity-40" x-text="target"></button>
+                                    <!-- Double hit button -->
+                                    <button @click="hitCricket(activePlayer, target, 2)" :disabled="isGameOver" class="w-[48px] h-[48px] bg-slate-700 hover:bg-slate-600 rounded text-[36px] flex items-center justify-center disabled:opacity-40">D</button>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </template>
 
-        # Do NOT automatically switch player on cricket clicks; Next button controls switching.
+                <!-- CRICKET KEYPAD / ACTION CONTROLS (scaled 20%)
+                     Contains UNDO and ENTER buttons, plus the reserved message banner.
+                     Maintains min-h-[1.5rem] and \u00A0 by default so buttons stay large. -->
+                <template x-if="isCricketGameMode()">
+                    <div class="w-full max-w-[538px] mt-1 mb-1">
+                        <!-- Alert / Notification banner (e.g. closed target alert, 3-dart hit limit) -->
+                        <div
+                            class="w-full text-center text-red-500 font-bold text-sm mb-1 min-h-[1.5rem] flex items-center justify-center"
+                            x-text="winMessage || cricketHitLimitMessage || '\u00A0'"
+                        ></div>
+                        <!-- Undo and Enter actions (scaled 20%) -->
+                        <div class="grid grid-cols-2 gap-2.5">
+                            <button @click="undo()" class="bg-yellow-600 hover:bg-yellow-500 font-bold py-3 rounded-xl text-lg transition-colors shadow">UNDO</button>
+                            <button @click="submitCricketTurn()" :disabled="winMessage !== ''" class="bg-green-600 hover:bg-green-500 font-bold py-3 rounded-xl text-lg transition-colors shadow">ENTER</button>
+                        </div>
+                    </div>
+                </template>
 
-        # Check for cricket win condition: player has >=3 hits on all labels and has higher score
-        try:
-            all_closed = True
-            for idx, val in enumerate(self.cricket_vals):
-                hits = self.cricket_accum[player_idx][idx] // (val if val else 1)
-                if hits < 3:
-                    all_closed = False
-                    break
-            if all_closed:
-                opponent = 1 - player_idx
-                if self.player_scores[player_idx] > self.player_scores[opponent]:
-# mark game over so no further scoring is allowed
-                    self.reset_game()
-                    return
-        except Exception:
-            pass
+                <!-- BOWTIE GAME BOARD & KEYPAD (scaled 20%)
+                     BowTie consists of 12 rounds: Free, 20, 19, Treble, 18, 17, Double, 16, 15, 3 Color, BT, Bull.
+                     Scores halve if a player fails to score in a round. -->
+                <template x-if="isBowTieGameMode()">
+                    <div class="w-full max-w-[614px] bg-slate-800 rounded-xl border border-slate-700 p-2.5 sm:p-3.5 text-base mb-2 mx-auto shadow">
+                        <!-- Active Player and Current Target Round indicator (scaled 20%) -->
+                        <div class="mt-1 text-lg leading-6 text-slate-300 flex items-center gap-3.5 whitespace-nowrap">
+                            <span>Active player: <span class="text-red-500 font-black" x-text="players[activePlayer].name"></span></span>
+                            <span>Target Round: <span class="text-red-500 font-black" x-text="getCurrentBowTieRound().label"></span></span>
+                        </div>
 
-    def next_player(self):
-        # Toggle active player (used in cricket mode)
-        self.current_player = 1 - self.current_player
-        self.update_player_display()
-        self.update_player_columns()
+                        <div class="mt-2.5 grid grid-cols-[140px_minmax(0,1fr)] sm:grid-cols-[154px_minmax(0,1fr)] gap-2.5 items-start">
+                            <!-- Left Column: 12 BowTie Targets list with active round highlight (scaled 20%) -->
+                            <div class="space-y-1.5 rounded-lg border border-slate-700 bg-slate-900/50 p-2">
+                                <div class="px-1 text-[11px] uppercase tracking-[0.18em] text-slate-400">TARGETS</div>
+                                <template x-for="(target, index) in [
+                                    'Free', 20, 19, 'Treble (T)', 18, 17, 'Double (D)',
+                                    16, 15, '3 Color', 'BowTie (BT)', 'Bull (B)'
+                                ]" :key="index">
+                                    <button
+                                        type="button"
+                                        :disabled="['Free', 'Treble (T)', 'Double (D)', '3 Color', 'BowTie (BT)'].includes(target)"
+                                        @click="if (!['Free', 'Treble (T)', 'Double (D)', '3 Color', 'BowTie (BT)'].includes(target)) addBowTieRoundTarget(target)"
+                                        :class="[
+                                            'w-full whitespace-nowrap rounded-md border border-slate-600 px-1.5 py-2 text-xs sm:text-[13px] font-black text-slate-100 hover:brightness-110 focus:outline-none active:scale-[0.98] bg-slate-700/90',
+                                            isCurrentBowTieTarget(target) ? 'bg-red-300 text-red-950 border-red-200 shadow-[0_0_0_2px_rgba(254,202,202,0.9),0_0_16px_rgba(239,68,68,0.7)] ring-2 ring-red-200/90' : '',
+                                            ['Free', 'Treble (T)', 'Double (D)', '3 Color', 'BowTie (BT)'].includes(target) ? 'opacity-50 cursor-not-allowed' : ''
+                                        ]"
+                                        x-text="target"
+                                    ></button>
+                                </template>
+                            </div>
 
-    def on_players_change(self):
-        # When player count changes, ensure current player is valid and update UI
-        if self.players_var.get() == 1:
-            # force current player to player 1
-            self.current_player = 0
-        self.update_player_display()
-        # ensure entry active for standard games
-        try:
-            if self.game_var.get() in (301, 501):
-                try:
-                    self.score_entry.config(state='normal')
-                except Exception:
-                    pass
-                try:
-                    self.submit_button.config(state='normal')
-                except Exception:
-                    pass
-                    try:
-                        self.submit_mid.config(state='normal')
-                    except Exception:
-                        pass
-                try:
-                    self.score_entry.focus_set()
-                    self.score_entry.select_range(0, tk.END)
-                except Exception:
-                    pass
-        except Exception:
-            pass
-        self.update_checkout_suggestions()
+                            <!-- Right Column: Player scores grid, BowTie keypad, and turn input -->
+                            <div class="flex flex-col">
+                                <!-- Multi-player Scorecards Grid (scaled 20%) -->
+                                <div class="grid gap-2">
+                                    <template x-for="(row, rowIndex) in getBowTiePlayerRows()" :key="rowIndex">
+                                        <div class="grid gap-2" :style="'grid-template-columns: repeat(' + row.length + ', minmax(0, 1fr))'">
+                                            <template x-for="(player, index) in row" :key="player.index">
+                                                <div :class="activePlayer === player.index ? 'bg-slate-700 border-t-4 border-red-500' : 'bg-slate-900/70'" class="min-w-0 rounded-lg border border-slate-700 px-1 py-2 text-center">
+                                                    <div class="text-[11px] font-bold uppercase tracking-wide text-slate-400 truncate" x-text="player.name"></div>
+                                                    <div
+                                                        class="mt-1 font-black tracking-tight leading-none whitespace-nowrap"
+                                                        :class="(activePlayer === player.index ? 'font-black ' : 'font-normal ') + (String(player.bowTieScore).length >= 4 ? 'text-xl' : (String(player.bowTieScore).length === 3 ? 'text-2xl' : 'text-3xl'))"
+                                                        x-text="player.bowTieScore"
+                                                    ></div>
+                                                </div>
+                                            </template>
+                                        </div>
+                                    </template>
+                                </div>
 
-    def on_game_change(self):
-        # Reset both player scores to selected game
-        start = self.game_var.get()
-        self.player_scores = [start, start] if start in (301,501) else [0,0]
-        self.current_player = 0
-        # enforce player count for 501
-        if start == 501:
-            self.players_var.set(2)
-            try:
-                self.rb_1player.config(state='disabled')
-            except Exception:
-                pass
-        # enforce player count for cricket as well
-        if start == 0:
-            self.players_var.set(2)
-            try:
-                self.rb_1player.config(state='disabled')
-            except Exception:
-                pass
-        else:
-            try:
-                self.rb_1player.config(state='normal')
-            except Exception:
-                pass
-        # clear history on game change
-        self.history.clear()
-        # reset cricket accumulators when switching to cricket
-        if start == 0:
-            self.cricket_accum = [[0]*len(self.cricket_vals), [0]*len(self.cricket_vals)]
-            # show cricket rows and hide standard last-six rows
-            self.show_cricket_ui(True)
-        else:
-            self.show_cricket_ui(False)
-        # Ensure entry and submit are enabled for 301/501
-        try:
-            if start in (301, 501):
-                try:
-                    self.score_entry.config(state='normal')
-                except Exception:
-                    pass
-                try:
-                    self.submit_button.config(state='normal')
-                except Exception:
-                    pass
-                    try:
-                        self.submit_mid.config(state='normal')
-                    except Exception:
-                        pass
-                try:
-                    self.score_entry.focus_set()
-                    self.score_entry.select_range(0, tk.END)
-                except Exception:
-                    pass
-        except Exception:
-            pass
-        self.update_player_display()
-        self.update_checkout_suggestions()
+                                <!-- BowTie Numeric Keypad (4 columns x 4 rows; scaled 20%):
+                                     Col 1-3: Numbers 0-9 and operators (+, *)
+                                     Col 4: Row 1 = Del, Row 2 = CLEAR, Row 3 = UNDO, Row 4 = Spacer -->
+                                <div class="grid grid-cols-4 gap-2 my-2">
+                                    <button @click="pressKey('1')" :disabled="isGameOver" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-base font-bold py-2 rounded-lg disabled:opacity-40">1</button>
+                                    <button @click="pressKey('2')" :disabled="isGameOver" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-base font-bold py-2 rounded-lg disabled:opacity-40">2</button>
+                                    <button @click="pressKey('3')" :disabled="isGameOver" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-base font-bold py-2 rounded-lg disabled:opacity-40">3</button>
+                                    <button @click="pressKey('back')" :disabled="isGameOver" class="keypad-btn bg-red-900/60 hover:bg-red-800 text-xs font-bold py-2 rounded-lg text-red-300 disabled:opacity-40">Del</button>
 
-    def set_current_player(self, idx):
-        # If only 1 player is active, ignore attempts to select player 2
-        if self.players_var.get() == 1 and idx == 1:
-            return
-        self.current_player = idx
-        self.update_player_display()
-        # Update checkout suggestions for the newly selected player and focus entry
-        self.update_checkout_suggestions()
-        try:
-            self.score_entry.focus_set()
-            self.score_entry.select_range(0, tk.END)
-        except Exception:
-            pass
-        self.update_player_columns()
+                                    <button @click="pressKey('4')" :disabled="isGameOver" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-base font-bold py-2 rounded-lg disabled:opacity-40">4</button>
+                                    <button @click="pressKey('5')" :disabled="isGameOver" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-base font-bold py-2 rounded-lg disabled:opacity-40">5</button>
+                                    <button @click="pressKey('6')" :disabled="isGameOver" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-base font-bold py-2 rounded-lg disabled:opacity-40">6</button>
+                                    <button @click="clearBowTieRoundInput()" class="keypad-btn bg-slate-600 hover:bg-slate-500 text-xs font-bold py-2 rounded-lg text-slate-100">CLEAR</button>
 
-    def show_cricket_ui(self, show: bool):
-        # toggle visibility between standard last-six labels and cricket rows
-        try:
-            if show:
-                # hide standard last-six
-                self.p1_scores_frame.grid_remove()
-                self.p2_scores_frame.grid_remove()
-                # show cricket frames
-                self.p1_cricket_frame.grid()
-                self.p2_cricket_frame.grid()
-                # hide entry and submit controls
-                try:
-                    self.entry_label.grid_remove()
-                    self.score_entry.grid_remove()
-                    self.submit_button.grid_remove()
-                    try:
-                        self.score_entry.config(state='disabled')
-                    except Exception:
-                        pass
-                    try:
-                        self.submit_button.config(state='disabled')
-                    except Exception:
-                        pass
-                    try:
-                        self.submit_mid.grid_remove()
-                        self.submit_mid.config(state='disabled')
-                    except Exception:
-                        pass
-                except Exception:
-                    pass
-                # show Next button, hide Undo? keep Undo visible
-                try:
-                    self.next_button.grid()
-                except Exception:
-                    pass
-            else:
-                # show standard
-                self.p1_scores_frame.grid()
-                self.p2_scores_frame.grid()
-                # hide cricket
-                self.p1_cricket_frame.grid_remove()
-                self.p2_cricket_frame.grid_remove()
-                # show entry and submit controls
-                try:
-                    self.entry_label.grid()
-                    self.score_entry.grid()
-                    self.submit_button.grid()
-                    try:
-                        self.score_entry.config(state='normal')
-                    except Exception:
-                        pass
-                    try:
-                        self.submit_button.config(state='normal')
-                    except Exception:
-                        pass
-                    try:
-                        self.submit_mid.grid()
-                        self.submit_mid.config(state='normal')
-                    except Exception:
-                        pass
-                except Exception:
-                    pass
-                try:
-                    self.next_button.grid_remove()
-                except Exception:
-                    pass
-        except Exception:
-            pass
+                                    <button @click="pressKey('7')" :disabled="isGameOver" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-base font-bold py-2 rounded-lg disabled:opacity-40">7</button>
+                                    <button @click="pressKey('8')" :disabled="isGameOver" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-base font-bold py-2 rounded-lg disabled:opacity-40">8</button>
+                                    <button @click="pressKey('9')" :disabled="isGameOver" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-base font-bold py-2 rounded-lg disabled:opacity-40">9</button>
+                                    <button @click="undo()" class="keypad-btn bg-yellow-600 hover:bg-yellow-500 text-xs font-bold py-2 rounded-lg text-yellow-50">UNDO</button>
 
-    def switch_player(self):
-        self.current_player = 1 - self.current_player
-        self.update_player_display()
+                                    <button @click="pressKey('+')" :disabled="isGameOver" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-base font-bold py-2 rounded-lg text-yellow-300 disabled:opacity-40">+</button>
+                                    <button @click="pressKey('0')" :disabled="isGameOver" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-base font-bold py-2 rounded-lg disabled:opacity-40">0</button>
+                                    <button @click="pressKey('*')" :disabled="isGameOver" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-base font-bold py-2 rounded-lg text-yellow-300 disabled:opacity-40">×</button>
+                                    <div class="keypad-btn"></div>
+                                </div>
 
-    def update_player_display(self):
-        # Update player labels and main score label to reflect current player
-        self.player1_label.config(text=f"P1: {self.player_scores[0]}")
-        self.player2_label.config(text=f"P2: {self.player_scores[1]}")
-        # Bold the active player
-        if self.current_player == 0:
-            self.player1_label.config(font=('Helvetica', 16, 'bold'))
-            self.player2_label.config(font=('Helvetica', 16))
-        else:
-            self.player1_label.config(font=('Helvetica', 16))
-            self.player2_label.config(font=('Helvetica', 16, 'bold'))
-        self.score_label.config(text=f"Player {self.current_player+1} Score: {self.player_scores[self.current_player]}")
-        # also update per-player column displays
-        self.update_player_columns()
+                                <!-- BowTie Round Input Field (scaled 20%) -->
+                                <div>
+                                    <label class="block text-[11px] uppercase tracking-[0.18em] text-slate-400 mb-1">Score for round</label>
+                                    <input
+                                        type="text"
+                                        x-model="bowTieRoundInput"
+                                        @input="bowTieMessage = ''"
+                                        @keydown.enter.prevent="submitBowTieTurn()"
+                                        placeholder="20 20 18"
+                                        class="w-full rounded-md border border-slate-600 bg-slate-950 px-2.5 py-2 text-base font-mono text-white placeholder:text-slate-500 focus:border-yellow-400 outline-none"
+                                    />
+                                </div>
+                                <!-- BowTie Validation / Warning Message Area (scaled 20%) -->
+                                <div
+                                    class="w-full text-center text-red-500 font-bold text-sm min-h-[1.5rem] flex items-center justify-center mt-1"
+                                    x-text="bowTieMessage || '\u00A0'"
+                                ></div>
+                                <!-- BowTie Submit Button (scaled 20%) -->
+                                <div class="mt-1">
+                                    <button @click="submitBowTieTurn()" :disabled="isGameOver || winMessage !== ''" class="w-full bg-green-600 hover:bg-green-500 font-bold py-2.5 rounded-lg text-base tracking-wide shadow transition-colors disabled:opacity-40">ENTER</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </template>
 
-    def update_player_columns(self):
-        # Update the Current labels
-        try:
-            self.p1_current_label.config(text=f"Current: {self.player_scores[0]}")
-            self.p2_current_label.config(text=f"Current: {self.player_scores[1]}")
-        except Exception:
-            pass
+                <!-- SHANGHAI GAME BOARD
+                     Shanghai is played over 10 rounds (targets 1-10). Each turn a player records
+                     a Single, Double, Triple hit on the target number. Instant win ("Shanghai")
+                     is achieved by hitting Single + Double + Triple in one 3-dart turn.
+                     Penalties: Miss target 3 → score to 0; Miss target 5 → score halved;
+                     Miss target 8 → player eliminated from remaining rounds. -->
+                <template x-if="isShanghaiGameMode()">
+                    <div class="w-full max-w-[614px] bg-slate-800 rounded-xl border border-slate-700 p-2.5 sm:p-3.5 text-base mb-2 mx-auto shadow">
+                        <!-- Active player indicator and current round -->
+                        <div class="mt-1 text-lg leading-6 text-slate-300 flex items-center gap-3.5 whitespace-nowrap flex-wrap">
+                            <span>Player: <span class="text-red-500 font-black" x-text="players[activePlayer].name"></span></span>
+                            <span>Round <span class="text-yellow-400 font-black" x-text="shanghaiRoundIndex + 1"></span> / 10 — Target: <span class="text-yellow-400 font-black" x-text="shanghaiRoundIndex + 1"></span></span>
+                        </div>
 
-        active_listbox_bg = '#ffeb00'
-        inactive_listbox_bg = 'white'
-        green_fg = '#ff0000'  # green for score labels
-        active_label_fg = '#ff0000'
-        default_label_fg = 'black'
+                        <!-- Player scorecards grid (up to 4 per row) -->
+                        <div class="mt-2 grid gap-2" :style="'grid-template-columns: repeat(' + Math.min(players.length, 4) + ', minmax(0, 1fr))'">
+                            <template x-for="(player, idx) in players" :key="idx">
+                                <div
+                                    :class="activePlayer === idx ? 'bg-slate-700 border-t-4 border-red-500' : (player.shanghaiEliminated ? 'bg-red-950/60 opacity-60' : 'bg-slate-900/70')"
+                                    class="rounded-lg border border-slate-700 px-1 py-2 text-center min-w-0"
+                                >
+                                    <div class="text-[11px] font-bold uppercase tracking-wide text-slate-400 truncate" x-text="player.name"></div>
+                                    <div
+                                        class="mt-1 font-black tracking-tight leading-none whitespace-nowrap"
+                                        :class="player.shanghaiEliminated ? 'text-2xl text-red-400' : (String(player.shanghaiScore).length >= 4 ? 'text-xl' : (String(player.shanghaiScore).length === 3 ? 'text-2xl' : 'text-3xl'))"
+                                        x-text="player.shanghaiEliminated ? 'OUT' : player.shanghaiScore"
+                                    ></div>
+                                </div>
+                            </template>
+                        </div>
 
-        if self.game_var.get() == 0:
-            # Cricket mode: populate cricket rows (show accumulated values)
-            try:
-                # show marks: 1 -> '/', 2 -> 'X', 3+ -> 'O'
-                marks = {0: '', 1: '/', 2: 'X', 3: 'O'}
-                for idx, (_lbl, score_lbl) in enumerate(self.p1_cricket_rows):
-                    acc = self.cricket_accum[0][idx]
-                    val = self.cricket_vals[idx]
-                    hits = acc // val if val else 0
-                    mark = marks.get(hits if hits < 3 else 3, 'O')
-                    score_lbl.config(text=mark)
-                for idx, (_lbl, score_lbl) in enumerate(self.p2_cricket_rows):
-                    acc = self.cricket_accum[1][idx]
-                    val = self.cricket_vals[idx]
-                    hits = acc // val if val else 0
-                    mark = marks.get(hits if hits < 3 else 3, 'O')
-                    score_lbl.config(text=mark)
-            except Exception:
-                pass
+                        <!-- Hit buttons for Shanghai: S (Single), D (Double), T (Triple), MISS -->
+                        <div class="mt-3">
+                            <div class="text-[11px] uppercase tracking-[0.18em] text-slate-400 mb-1 text-center">
+                                Record dart on target <span class="text-yellow-400 font-black" x-text="shanghaiRoundIndex + 1"></span>
+                                (darts thrown: <span class="text-yellow-400 font-black" x-text="players[activePlayer].shanghaiTurnDarts || 0"></span> / 3):
+                            </div>
+                            <div class="grid grid-cols-4 gap-2 mb-2">
+                                <!-- Single button -->
+                                <button
+                                    @click="hitShanghai('single')"
+                                    :disabled="isGameOver || players[activePlayer].shanghaiEliminated || (players[activePlayer].shanghaiTurnDarts || 0) >= 3"
+                                    class="keypad-btn font-bold py-3 rounded-xl text-lg transition-colors disabled:opacity-40 bg-slate-300 hover:bg-slate-400 text-slate-900 border border-slate-400"
+                                >
+                                    <div class="text-xs text-slate-300">Single</div>
+                                    <div class="font-black text-lg" x-text="shanghaiRoundIndex + 1"></div>
+                                </button>
+                                <!-- Double button -->
+                                <button
+                                    @click="hitShanghai('double')"
+                                    :disabled="isGameOver || players[activePlayer].shanghaiEliminated || (players[activePlayer].shanghaiTurnDarts || 0) >= 3"
+                                    class="keypad-btn font-bold py-3 rounded-xl text-lg transition-colors disabled:opacity-40 bg-slate-300 hover:bg-slate-400 text-slate-900 border border-slate-400"
+                                >
+                                    <div class="text-xs text-slate-300">Double</div>
+                                    <div class="font-black text-lg" x-text="'D' + (shanghaiRoundIndex + 1)"></div>
+                                </button>
+                                <!-- Triple button -->
+                                <button
+                                    @click="hitShanghai('triple')"
+                                    :disabled="isGameOver || players[activePlayer].shanghaiEliminated || (players[activePlayer].shanghaiTurnDarts || 0) >= 3"
+                                    class="keypad-btn font-bold py-3 rounded-xl text-lg transition-colors disabled:opacity-40 bg-slate-300 hover:bg-slate-400 text-slate-900 border border-slate-400"
+                                >
+                                    <div class="text-xs text-slate-300">Triple</div>
+                                    <div class="font-black text-lg" x-text="'T' + (shanghaiRoundIndex + 1)"></div>
+                                </button>
+                                <!-- Miss button -->
+                                <button
+                                    @click="hitShanghai('miss')"
+                                    :disabled="isGameOver || players[activePlayer].shanghaiEliminated || (players[activePlayer].shanghaiTurnDarts || 0) >= 3"
+                                    class="keypad-btn bg-yellow-700/80 hover:bg-yellow-600 font-bold py-3 rounded-lg text-base transition-colors disabled:opacity-40"
+                                >
+                                    <div class="text-xs text-yellow-200">Miss</div>
+                                    <div class="font-black text-lg text-yellow-100">0</div>
+                                </button>
+                            </div>
 
-            try:
-                # main score label green
-                self.score_label.config(foreground=green_fg)
-                # Current: label bright blue for active player
-                if self.current_player == 0:
-                    self.p1_current_label.config(foreground=active_label_fg)
-                    self.p2_current_label.config(foreground=default_label_fg)
-                else:
-                    self.p1_current_label.config(foreground=default_label_fg)
-                    self.p2_current_label.config(foreground=active_label_fg)
+                            <!-- Dart indicator dots -->
+                            <div class="flex justify-center gap-3 mb-2">
+                                <template x-for="i in [1,2,3]" :key="i">
+                                    <div
+                                        :class="i <= (players[activePlayer].shanghaiTurnDarts || 0) ? 'bg-red-500 border-red-400' : 'bg-slate-700 border-slate-500'"
+                                        class="w-7 h-7 rounded-full border-2 flex items-center justify-center text-xs font-bold"
+                                        x-text="i"
+                                    ></div>
+                                </template>
+                            </div>
 
-                # color cricket score-label backgrounds to indicate turn
-                if self.current_player == 0:
-                    for (_lbl, s) in self.p1_cricket_rows:
-                        s.config(background=active_listbox_bg)
-                    for (_lbl, s) in self.p2_cricket_rows:
-                        s.config(background=inactive_listbox_bg)
-                else:
-                    for (_lbl, s) in self.p1_cricket_rows:
-                        s.config(background=inactive_listbox_bg)
-                    for (_lbl, s) in self.p2_cricket_rows:
-                        s.config(background=active_listbox_bg)
-            except Exception:
-                pass
-        else:
-            # Standard 301/501 mode: populate last-six throw labels
-            p1_scores = []
-            p2_scores = []
-            for entry in reversed(self.history):
-                if entry.get('player') == 0 and len(p1_scores) < 6:
-                    p1_scores.append(entry.get('score'))
-                elif entry.get('player') == 1 and len(p2_scores) < 6:
-                    p2_scores.append(entry.get('score'))
-                if len(p1_scores) >= 6 and len(p2_scores) >= 6:
-                    break
+                            <!-- Message banner (reserved height so UNDO/ENTER stay large) -->
+                            <div
+                                class="w-full text-center text-red-500 font-bold text-sm min-h-[1.5rem] flex items-center justify-center mb-2"
+                                x-text="shanghaiMessage || '\u00A0'"
+                            ></div>
 
-            try:
-                for idx in range(6):
-                    text = str(p1_scores[idx]) if idx < len(p1_scores) else ''
-                    self.p1_score_labels[idx].config(text=text)
-            except Exception:
-                pass
+                            <!-- UNDO and ENTER buttons -->
+                            <div class="grid grid-cols-2 gap-2.5">
+                                <button @click="undo()" class="bg-yellow-600 hover:bg-yellow-500 font-bold py-3 rounded-xl text-lg transition-colors shadow">UNDO</button>
+                                <button @click="submitShanghaiTurn()" :disabled="winMessage !== ''" class="bg-green-600 hover:bg-green-500 font-bold py-3 rounded-xl text-lg transition-colors shadow">ENTER</button>
+                            </div>
+                        </div>
+                    </div>
+                </template>
 
-            try:
-                for idx in range(6):
-                    text = str(p2_scores[idx]) if idx < len(p2_scores) else ''
-                    self.p2_score_labels[idx].config(text=text)
-            except Exception:
-                pass
+                <!-- CURRENT TURN INPUT DISPLAY (X01 games only; scaled 20%)
+                     Displays current entered score expression, turn total, and new remaining score preview -->
+                <template x-if="!isCricketGameMode() && !isBowTieGameMode() && !isShanghaiGameMode()">
+                    <div class="bg-slate-800/60 border border-slate-700 rounded-xl p-2 sm:p-2.5 w-full max-w-md text-center shadow-inner">
+                        <div class="text-sm text-slate-400 uppercase mb-0.5">Current Turn Score</div>
+                        <!-- Current unsubmitted turn score expression (scaled 20%) -->
+                        <div class="text-3xl sm:text-4xl font-mono font-black text-red-500 tracking-widest h-12 sm:h-14" x-text="currentTurnScore || '0'"></div>
+                        <!-- Turn Total and New Score Preview Boxes (scaled 20%) -->
+                        <div class="mt-1.5 grid grid-cols-2 gap-1.5 text-left">
+                            <div class="bg-slate-900/60 rounded-lg p-2.5">
+                                <div class="text-xs uppercase tracking-wider text-slate-400">Turn Total</div>
+                                <div class="text-lg font-mono font-bold text-red-400" x-text="turnTotalPreview()"></div>
+                            </div>
+                            <div class="bg-slate-900/60 rounded-lg p-2.5">
+                                <div class="text-xs uppercase tracking-wider text-slate-400">New Score</div>
+                                <div class="text-lg font-mono font-bold text-green-400" x-text="newScorePreview()"></div>
+                            </div>
+                        </div>
+                    </div>
+                </template>
 
-            try:
-                # main score label green
-                self.score_label.config(foreground=green_fg)
-                # set Current: label color: bright blue for active player, black otherwise
-                if self.current_player == 0:
-                    self.p1_current_label.config(foreground=active_label_fg)
-                    self.p2_current_label.config(foreground=default_label_fg)
-                else:
-                    self.p1_current_label.config(foreground=default_label_fg)
-                    self.p2_current_label.config(foreground=active_label_fg)
+                <!-- X01 NUMERIC KEYPAD & TURN CONTROLS (scaled 20%)
+                     Provides touch-friendly numeric entry (1-9, 0, +, *), Del, UNDO, MISS, BUST, ENTER,
+                     a dedicated status/error display line, and quick-score preset buttons. -->
+                <template x-if="isX01GameMode() && !isShanghaiGameMode()">
+                    <div class="compact-keypad w-full max-w-[538px] mt-1 bg-slate-800/60 border-t border-slate-700 px-1.5 py-1.5 rounded-lg shrink-0">
+                        <div class="max-w-[538px] mx-auto">
+                            <!-- Keypad Grid (4 columns; scaled 20%) -->
+                            <div class="grid grid-cols-4 gap-2 mb-2">
+                                <button @click="pressKey('1')" :disabled="isGameOver" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-lg font-bold py-2.5 rounded-lg disabled:opacity-40">1</button>
+                                <button @click="pressKey('2')" :disabled="isGameOver" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-lg font-bold py-2.5 rounded-lg disabled:opacity-40">2</button>
+                                <button @click="pressKey('3')" :disabled="isGameOver" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-lg font-bold py-2.5 rounded-lg disabled:opacity-40">3</button>
+                                <button @click="pressKey('back')" class="keypad-btn bg-red-900/60 hover:bg-red-800 text-xs font-bold py-2.5 rounded-lg text-red-300">Del</button>
 
-                # color score frames' backgrounds to indicate turn by list-style bg
-                if self.current_player == 0:
-                    for lbl in self.p1_score_labels:
-                        lbl.config(background=active_listbox_bg)
-                    for lbl in self.p2_score_labels:
-                        lbl.config(background=inactive_listbox_bg)
-                else:
-                    for lbl in self.p1_score_labels:
-                        lbl.config(background=inactive_listbox_bg)
-                    for lbl in self.p2_score_labels:
-                        lbl.config(background=active_listbox_bg)
-            except Exception:
-                pass
-    
-    def calculate_dart_checkout(self, target):
-        singles = list(range(1, 21)) + [25]
-        doubles = [i*2 for i in range(1, 21)] + [50]
-        triples = [i*3 for i in range(1, 21)]
+                                <button @click="pressKey('4')" :disabled="isGameOver" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-lg font-bold py-2.5 rounded-lg disabled:opacity-40">4</button>
+                                <button @click="pressKey('5')" :disabled="isGameOver" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-lg font-bold py-2.5 rounded-lg disabled:opacity-40">5</button>
+                                <button @click="pressKey('6')" :disabled="isGameOver" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-lg font-bold py-2.5 rounded-lg disabled:opacity-40">6</button>
+                                <button @click="undo()" class="keypad-btn bg-yellow-600 hover:bg-yellow-500 text-xs font-bold py-2.5 rounded-lg text-yellow-50">UNDO</button>
 
-        all_possible = sorted(singles + doubles + triples, reverse=True)
-        solutions = []
+                                <button @click="pressKey('7')" :disabled="isGameOver" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-lg font-bold py-2.5 rounded-lg disabled:opacity-40">7</button>
+                                <button @click="pressKey('8')" :disabled="isGameOver" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-lg font-bold py-2.5 rounded-lg disabled:opacity-40">8</button>
+                                <button @click="pressKey('9')" :disabled="isGameOver" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-lg font-bold py-2.5 rounded-lg disabled:opacity-40">9</button>
+                                <div class="keypad-btn"></div>
 
-        # Check for single-dart solutions
-        if target in doubles:
-            solutions.append([target])
+                                <button @click="pressKey('+')" :disabled="isGameOver" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-lg font-bold py-2.5 rounded-lg text-yellow-300 disabled:opacity-40">+</button>
+                                <button @click="pressKey('0')" :disabled="isGameOver" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-lg font-bold py-2.5 rounded-lg disabled:opacity-40">0</button>
+                                <button @click="pressKey('*')" :disabled="isGameOver" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-lg font-bold py-2.5 rounded-lg text-yellow-300 disabled:opacity-40">×</button>
+                                <div class="keypad-btn"></div>
 
-        # Check for two-dart solutions
-        for first in all_possible:
-            remaining = target - first
-            if remaining in doubles:
-                solutions.append([first, remaining])
+                                <button @click="setScore(0)" :disabled="isGameOver" class="keypad-btn bg-yellow-600/80 hover:bg-yellow-500 text-xs font-bold py-2.5 rounded-lg text-yellow-50 disabled:opacity-40">MISS</button>
+                                <button @click="bustTurn()" :disabled="isGameOver" class="keypad-btn bg-red-700/80 hover:bg-red-600 text-xs font-bold py-2.5 rounded-lg text-red-50 disabled:opacity-40">BUST</button>
+                                <button @click="submitX01()" :disabled="winMessage !== ''" class="keypad-btn bg-green-600 hover:bg-green-500 font-bold py-2.5 rounded-lg text-xs shadow transition-colors">ENTER</button>
+                                <div class="keypad-btn"></div>
 
-        # Check for three-dart solutions
-        for i, first in enumerate(all_possible):
-            for second in all_possible[i:]:
-                remaining = target - first - second
-                if remaining in doubles:
-                    solutions.append([first, second, remaining])
+                                <!-- X01 Message Line - displays messages in row after ENTER, persists until another button is clicked -->
+                                <div
+                                    class="col-span-4 text-center text-red-500 font-bold text-sm min-h-[1.5rem] flex items-center justify-center mb-2"
+                                    x-text="x01BustMessage || winMessage || '\u00A0'"
+                                ></div>
 
-        # Sort solutions by dart count then highest values first
-        solutions.sort(key=lambda x: (len(x), -sum(x)))
+                                <!-- Quick Common Score Preset Buttons (26, 41, 45, 60, 81, 100; scaled 20%) -->
+                                <div class="col-span-4 grid grid-cols-6 gap-1.5">
+                                    <button @click="setScore(26)" class="keypad-btn bg-amber-500/20 hover:bg-amber-500/30 text-[10px] font-bold py-2 rounded-lg text-amber-200 border border-amber-400/20">26</button>
+                                    <button @click="setScore(41)" class="keypad-btn bg-amber-500/20 hover:bg-amber-500/30 text-[10px] font-bold py-2 rounded-lg text-amber-200 border border-amber-400/20">41</button>
+                                    <button @click="setScore(45)" class="keypad-btn bg-amber-500/20 hover:bg-amber-500/30 text-[10px] font-bold py-2 rounded-lg text-amber-200 border border-amber-400/20">45</button>
+                                    <button @click="setScore(60)" class="keypad-btn bg-sky-500/20 hover:bg-sky-500/30 text-[10px] font-bold py-2 rounded-lg text-sky-200 border border-sky-400/20">60</button>
+                                    <button @click="setScore(81)" class="keypad-btn bg-sky-500/20 hover:bg-sky-500/30 text-[10px] font-bold py-2 rounded-lg text-sky-200 border border-sky-400/20">81</button>
+                                    <button @click="setScore(100)" class="keypad-btn bg-sky-500/20 hover:bg-sky-500/30 text-[10px] font-bold py-2 rounded-lg text-sky-200 border border-sky-400/20">100</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </template>
+            </div>
 
-        return solutions[:3] if solutions else None
+            <!-- BOTTOM UTILITY BAR -->
 
-    def update_checkout_suggestions(self):
-        # Hide checkout suggestions when Cricket is selected
-        if self.game_var.get() == 0:
-            try:
-                self.checkout_frame.grid_remove()
-            except Exception:
-                pass
-            return
+<div class="flex justify-end items-center px-3 py-1 border-t border-slate-700 text-xs shrink-0">
+                <span class="text-slate-500">Scoreboard v0.1</span>
+            </div>
 
-        # Ensure checkout frame is visible for 301/501
-        try:
-            self.checkout_frame.grid()
-        except Exception:
-            pass
+        </div>
+    </main>
 
-        self.checkout_text.config(state='normal')
-        self.checkout_text.delete('1.0', 'end')
-        current = self.player_scores[self.current_player]
+    <!-- ========================================================================
+         APPLICATION SCRIPT LOGIC (Alpine.js dartApp)
+         Implements game state management, turn calculations, rules enforcement,
+         checkouts, and undo history across all supported dart games.
+         ======================================================================== -->
+    <script>
+        function dartApp() {
+            return {
+                /* ------------------------------------------------------------------
+                   APPLICATION STATE PROPERTIES
+                   ------------------------------------------------------------------ */
+                screen: 'menu',                    // Current screen: 'menu' (setup) or 'scoring' (live match)\n        isGameOver: false,           // Track if a leg/game has been won
+                gameMode: '501',                   // Selected game mode ('501', '301', 'Cricket', 'BowTie', 'Shanghai', etc.)
+                startingMode: 'Straight-in',       // X01 starting rule ('Straight-in' or 'Double-in')
+                matchType: 'Single Leg',           // Match structure type
+                playerCount: 2,                    // Number of active players
+                activePlayer: 0,                   // Index of the player whose turn it currently is
+                currentTurnScore: '',              // Active turn score expression for X01 (e.g. '20*3 + 19')
+                bowTieRoundIndex: 0,               // Current active round index in BowTie (0 to 11)
+                bowTieDarts: [],                   // Recorded darts thrown in the current BowTie round
+                bowTieRoundInput: '',              // Text expression for BowTie round score
+                bowTieMessage: '',                 // Validation / alert message for BowTie (e.g. max score 180)
+                cricketHitLimitMessage: '',        // Alert message for Cricket (closed target or 3-dart limit)
+                x01BustMessage: '',                // Alert message for X01 (Bust or max score 180)
+                // Shanghai state
+                shanghaiRoundIndex: 0,             // Current round index (0-9, representing targets 1-10)
+                shanghaiMessage: '',               // Alert/status message for Shanghai game
+                winMessage: '',                    // Game-win message shown in the message space instead of a pop-up
+                players: [                         // List of player state objects
+                    { name: 'P1', score: 501, history: [], cricketScore: 0, marks: {20:0, 19:0, 18:0, 17:0, 16:0, 15:0, 'B':0}, turnDarts: 0, bowTieScore: 0 },
+                    { name: 'P2', score: 501, history: [], cricketScore: 0, marks: {20:0, 19:0, 18:0, 17:0, 16:0, 15:0, 'B':0}, turnDarts: 0, bowTieScore: 0 }
+                ],
+                lastTurn: null,                    // Details of the most recent completed turn
+                undoStack: [],                     // Stack of game state snapshots for multi-level undo
 
-        if current > 32:
-            checkouts = self.calculate_dart_checkout(current)
-            if checkouts:
-                self.checkout_text.insert('end', f"Top checkouts for Player {self.current_player+1} ({current}):\n")
-                for i, checkout in enumerate(checkouts[:3], 1):
-                    darts = [f"D{num//2}" if num in [50] + [n*2 for n in range(1,21)]
-                            else f"T{num//3}" if num % 3 == 0
-                            else f"S{num}" if num != 25
-                            else "Bull" for num in checkout]
-                    self.checkout_text.insert('end', f"{i}. {' → '.join(darts)} ({len(checkout)} darts)\n")
-            else:
-                self.checkout_text.insert('end', f"No possible checkout for {current}")
-        else:
-            self.checkout_text.insert('end', f"Score too low for checkout suggestions ({current})")
-        
-        self.checkout_text.config(state='disabled')
+                /* ------------------------------------------------------------------
+                   UNDO & STATE PERSISTENCE METHODS
+                   ------------------------------------------------------------------ */
+                /**
+                 * Captures a snapshot of the current game state and pushes it onto the undo stack.
+                 */
+                saveUndoState() {
+                    this.undoStack.push({
+                        screen: this.screen,
+                        gameMode: this.gameMode,
+                        startingMode: this.startingMode,
+                        playerCount: this.playerCount,
+                        activePlayer: this.activePlayer,
+                        currentTurnScore: this.currentTurnScore,
+                        bowTieRoundIndex: this.bowTieRoundIndex,
+                        bowTieDarts: JSON.parse(JSON.stringify(this.bowTieDarts || [])),
+                        bowTieRoundInput: this.bowTieRoundInput,
+                        bowTieMessage: this.bowTieMessage,
+                        cricketHitLimitMessage: this.cricketHitLimitMessage,
+                        players: JSON.parse(JSON.stringify(this.players)),
+                        lastTurn: this.lastTurn ? { ...this.lastTurn } : null,
+                        shanghaiRoundIndex: this.shanghaiRoundIndex,
+                        isGameOver: this.isGameOver,
+                        winMessage: this.winMessage
+                    });
+                },
 
-    # draw_dartboard removed — icon deleted per request
-    
-    def reset_game(self):
-        start = self.game_var.get()
-        # for cricket, reset to 0 scores; for 301/501 use starting game value
-        if start == 0:
-            self.player_scores = [0, 0]
-        else:
-            self.player_scores = [start, start]
-        self.current_player = 0
-        # clear history
-        self.history.clear()
-        self.score_entry.delete(0, 'end')
-        # clear per-player score label rows
-        try:
-            for lbl in getattr(self, 'p1_score_labels', []):
-                lbl.config(text='')
-            for lbl in getattr(self, 'p2_score_labels', []):
-                lbl.config(text='')
-        except Exception:
-            pass
-        # clear cricket accumulators and labels if in cricket mode
-        try:
-            if self.game_var.get() == 0:
-                self.cricket_accum = [[0]*len(self.cricket_vals), [0]*len(self.cricket_vals)]
-                for (_l, s) in getattr(self, 'p1_cricket_rows', []):
-                    s.config(text='')
-                for (_l, s) in getattr(self, 'p2_cricket_rows', []):
-                    s.config(text='')
-        except Exception:
-            pass
-        # refresh displays
-        # ensure entry enabled for non-cricket games
-        try:
-            if self.game_var.get() in (301, 501):
-                try:
-                    self.score_entry.config(state='normal')
-                except Exception:
-                    pass
-                try:
-                    self.submit_button.config(state='normal')
-                except Exception:
-                    pass
-                try:
-                    self.submit_mid.config(state='normal')
-                except Exception:
-                    pass
-                try:
-                    self.score_entry.focus_set()
-                except Exception:
-                    pass
-        except Exception:
-            pass
-        self.update_player_display()
-        self.update_checkout_suggestions()
+                /**
+                 * Restores the game state from a previously captured undo snapshot.
+                 */
+                restoreUndoState(snapshot) {
+                    if (!snapshot) return;
+                    this.screen = snapshot.screen;
+                    this.gameMode = snapshot.gameMode;
+                    this.startingMode = snapshot.startingMode || 'Straight-in';
+                    this.playerCount = snapshot.playerCount;
+                    this.activePlayer = snapshot.activePlayer;
+                    this.currentTurnScore = snapshot.currentTurnScore;
+                    this.bowTieRoundIndex = snapshot.bowTieRoundIndex ?? 0;
+                    this.bowTieDarts = JSON.parse(JSON.stringify(snapshot.bowTieDarts || []));
+                    this.bowTieRoundInput = snapshot.bowTieRoundInput || '';
+                    this.bowTieMessage = snapshot.bowTieMessage || '';
+                    this.cricketHitLimitMessage = snapshot.cricketHitLimitMessage || '';
+                    this.players = JSON.parse(JSON.stringify(snapshot.players));
+                    this.lastTurn = snapshot.lastTurn ? { ...snapshot.lastTurn } : null;
+                    this.shanghaiRoundIndex = snapshot.shanghaiRoundIndex ?? 0;
+                    this.isGameOver = snapshot.isGameOver ?? false;
+                    this.winMessage = snapshot.winMessage || '';
+                },
 
-if __name__ == "__main__":
-    root = tk.Tk()
-    app = DartCheckoutApp(root)
-    root.mainloop()
+                /**
+                 * Creates an initial baseline snapshot for undo operations when a match starts.
+                 */
+                saveUndoStateSnapshot() {
+                    return {
+                        screen: this.screen,
+                        gameMode: this.gameMode,
+                        startingMode: this.startingMode,
+                        playerCount: this.playerCount,
+                        activePlayer: this.activePlayer,
+                        currentTurnScore: this.currentTurnScore,
+                        bowTieRoundIndex: this.bowTieRoundIndex ?? 0,
+                        bowTieDarts: JSON.parse(JSON.stringify(this.bowTieDarts || [])),
+                        bowTieRoundInput: this.bowTieRoundInput || '',
+                        bowTieMessage: this.bowTieMessage || '',
+                        cricketHitLimitMessage: this.cricketHitLimitMessage || '',
+                        players: JSON.parse(JSON.stringify(this.players)),
+                        lastTurn: this.lastTurn ? { ...this.lastTurn } : null,
+                        shanghaiRoundIndex: this.shanghaiRoundIndex ?? 0,
+                        isGameOver: this.isGameOver,
+                        winMessage: this.winMessage || ''
+                    };
+                },
+
+                /**
+                 * Reverts the most recent turn or dart hit and restores previous state.
+                 */
+                undo() {
+                    if (this.undoStack.length <= 1) {
+                        const base = this.undoStack[0] || this.saveUndoStateSnapshot();
+                        this.restoreUndoState(base);
+                        this.undoStack = [base];
+                        return;
+                    }
+
+                    const previous = this.undoStack.pop();
+                    this.restoreUndoState(previous);
+                    // Clear any transient warning messages when undoing
+                    this.cricketHitLimitMessage = '';
+                    this.x01BustMessage = '';
+                    this.bowTieMessage = '';
+                    this.shanghaiMessage = '';
+                    this.winMessage = '';
+                    this.isGameOver = false;  // Re-enable all buttons after undo
+                },
+
+                /* ------------------------------------------------------------------
+                   GAME MODE PREDICATES & PLAYER CONFIGURATION
+                   ------------------------------------------------------------------ */
+                /** Check if current mode is either standard 2-player Cricket or 3-Way Cricket */
+                isCricketGameMode() {
+                    return this.isStandardCricketGameMode() || this.isThreeWayCricketGameMode();
+                },
+
+                /** Check if current mode is standard 2-player Cricket */
+                isStandardCricketGameMode() {
+                    return this.gameMode === 'Cricket';
+                },
+
+                /** Check if current mode is 3-Way Cricket */
+                isThreeWayCricketGameMode() {
+                    return this.gameMode === '3-Way Cricket';
+                },
+
+                /** Check if current mode is an X01 game (601, 501, 401, 301, 201, 101) */
+                isX01GameMode() {
+                    return ['601', '501', '401', '301', '201', '101'].includes(String(this.gameMode));
+                },
+
+                /** Check if current mode is BowTie */
+                isBowTieGameMode() {
+                    return this.gameMode === 'BowTie';
+                },
+
+                /** Check if current mode is Shanghai */
+                isShanghaiGameMode() {
+                    return this.gameMode === 'Shanghai';
+                },
+
+                /** Returns maximum allowed players for the current game mode */
+                getMaxPlayerCount() {
+                    if (this.isBowTieGameMode() || this.isShanghaiGameMode()) return 15;
+                    if (this.isX01GameMode()) return 4;
+                    if (this.isThreeWayCricketGameMode()) return 3;
+                    return 6;  // Standard Cricket: up to 6 players
+                },
+
+                /** Returns an array [1, 2, ..., max] for the player count selector */
+                getPlayerCountOptions() {
+                    const max = this.getMaxPlayerCount();
+                    return Array.from({ length: max }, (_, index) => index + 1);
+                },
+
+                /** Returns array of player slot descriptor objects for the setup screen */
+                getPlayerSlots() {
+                    const count = this.isThreeWayCricketGameMode()
+                        ? 3
+                        : Math.min(this.getMaxPlayerCount(), Math.max(1, Number(this.playerCount) || 2));
+                    return Array.from({ length: count }, (_, index) => ({ 
+                        index, 
+                        name: this.players[index]?.name || `P${index + 1}` 
+                    }));
+                },
+
+                /** CSS grid classes for player name inputs on setup screen */
+                getPlayerNameSetupGridClasses() {
+                    const count = this.getPlayerSlots().length;
+                    if (count > 6) return 'grid-cols-4';
+                    if (count === 3) return 'grid-cols-3';
+                    if (count === 1) return 'grid-cols-1';
+                    return 'grid-cols-2';
+                },
+
+                /** CSS grid classes for the live scoreboard header */
+                getPlayerGridClasses() {
+                    const count = this.players.length || this.playerCount || 2;
+                    if (count <= 2) return 'grid-cols-2';
+                    if (count === 3) return 'grid-cols-3';
+                    if (count <= 4) return 'grid-cols-2';
+                    if (count <= 6) return 'grid-cols-3';
+                    return 'grid-cols-4';
+                },
+
+                /** Returns maximum allowed character length for player names */
+                getPlayerNameMaxLength() {
+                    if (this.isBowTieGameMode()) return 5;
+                    return Number(this.playerCount) > 6 ? 2 : 5;
+                },
+
+                /**
+                 * Sanitizes and updates a player's name during setup (uppercase, alphanumeric only).
+                 */
+                setPlayerName(index, value, event) {
+                    const maxLength = this.getPlayerNameMaxLength();
+                    const nextValue = String(value || '').replace(/[^A-Za-z0-9]/g, '').slice(0, maxLength).toUpperCase();
+                    if (event && event.target) {
+                        event.target.value = nextValue;
+                    }
+                    if (!this.players[index]) {
+                        this.setupPlayerNames();
+                    }
+                    if (this.players[index]) {
+                        this.players[index].name = nextValue;
+                    }
+                },
+
+                /**
+                 * Triggered when the user selects a new "Game Mode" on the setup screen.
+                 * Sets the default number of players appropriate for the chosen mode,
+                 * and resets Player Names back to their default values (P1, P2, etc.).
+                 */
+                handleGameModeChange() {
+                    // Set default player count appropriate for selected mode
+                    if (this.isThreeWayCricketGameMode()) {
+                        this.playerCount = 3;
+                    } else if (this.isStandardCricketGameMode()) {
+                        this.playerCount = 2;
+                    } else if (['201', '101'].includes(String(this.gameMode))) {
+                        this.playerCount = 1;
+                    } else if (this.isX01GameMode()) {
+                        this.playerCount = 2;
+                    } else if (this.isBowTieGameMode()) {
+                        this.playerCount = 2;
+                    } else if (this.isShanghaiGameMode()) {
+                        this.playerCount = 2;
+                    }
+                    // Reset player names back to defaults (P1, P2, P3, etc.)
+                    this.setupPlayerNames(true);
+                },
+
+                /** Returns starting score for X01 modes (e.g. 501 for '501', 0 for others) */
+                getStartingScore() {
+                    return this.isX01GameMode() ? Number(this.gameMode) : 0;
+                },
+
+                /**
+                 * Initializes or updates player objects according to the current mode and count.
+                 * @param {boolean} resetToDefault - When true, resets names to default (P1, P2, ...)
+                 */
+                setupPlayerNames(resetToDefault = false) {
+                    this.cricketHitLimitMessage = '';
+                    const count = this.isThreeWayCricketGameMode()
+                        ? 3
+                        : Math.min(this.getMaxPlayerCount(), Math.max(1, Number(this.playerCount) || 2));
+                    const existingPlayers = Array.isArray(this.players) ? this.players : [];
+                    this.players = Array.from({ length: count }, (_, index) => {
+                        const existing = existingPlayers[index];
+                        const defaultName = `P${index + 1}`;
+                        // If resetToDefault is true, always reset to P1, P2, etc.
+                        const name = (!resetToDefault && existing && existing.name && existing.name.trim())
+                            ? existing.name.trim().slice(0, this.getPlayerNameMaxLength()).toUpperCase()
+                            : defaultName;
+                        return {
+                            name: name,
+                            score: this.isX01GameMode() ? Number(this.gameMode) : 0,
+                            history: existing && !resetToDefault ? existing.history || [] : [],
+                            cricketScore: existing && !resetToDefault ? existing.cricketScore || 0 : 0,
+                            marks: existing && !resetToDefault && existing.marks ? { ...existing.marks } : {20:0, 19:0, 18:0, 17:0, 16:0, 15:0, 'B':0},
+                            turnDarts: existing && !resetToDefault ? existing.turnDarts || 0 : 0,
+                            bowTieScore: existing && !resetToDefault ? existing.bowTieScore || 0 : 0,
+                            shanghaiScore: existing && !resetToDefault ? existing.shanghaiScore || 0 : 0,
+                            shanghaiTurnDarts: 0,
+                            shanghaiTurnHits: [],
+                            shanghaiEliminated: false
+                        };
+                    });
+                },
+
+                /**
+                 * Begins a new match with the configured players and initial scores.
+                 */
+                startMatch() {
+                    const startingScore = this.getStartingScore();
+                    this.setupPlayerNames(false);
+                    this.players = this.players.map((player, index) => ({
+                        ...player,
+                        name: (player.name && player.name.trim()) ? player.name.trim().slice(0, this.getPlayerNameMaxLength()).toUpperCase() : `P${index + 1}`,
+                        score: startingScore,
+                        history: [],
+                        cricketScore: 0,
+                        marks: {20:0, 19:0, 18:0, 17:0, 16:0, 15:0, 'B':0},
+                        turnDarts: 0,
+                        bowTieScore: 0,
+                        shanghaiScore: 0,
+                        shanghaiTurnDarts: 0,
+                        shanghaiTurnHits: [],
+                        shanghaiEliminated: false
+                    }));
+                    this.activePlayer = 0;
+                    this.currentTurnScore = '';
+                    this.bowTieRoundIndex = 0;
+                    this.bowTieDarts = [];
+                    this.bowTieRoundInput = '';
+                    this.bowTieMessage = '';
+                    this.cricketHitLimitMessage = '';
+                    this.x01BustMessage = '';
+                    this.shanghaiRoundIndex = 0;
+                    this.shanghaiMessage = '';
+                    this.screen = 'scoring';
+                    this.undoStack = [this.saveUndoStateSnapshot()];
+                },
+
+                /**
+                 * Returns back to the menu screen to configure a new match.
+                 */
+                resetMatch() {
+                    this.screen = 'menu';
+                    this.isGameOver = false;  // Reset game over state
+                    this.x01BustMessage = '';
+                    this.bowTieMessage = '';
+                    this.cricketHitLimitMessage = '';
+                    this.winMessage = '';
+                },
+
+                /* ------------------------------------------------------------------
+                   BOWTIE GAME RULES & SCORING ENGINE
+                   ------------------------------------------------------------------ */
+                /* ------------------------------------------------------------------
+                   SHANGHAI GAME RULES & SCORING ENGINE
+                   ------------------------------------------------------------------ */
+
+                /**
+                 * Records a dart hit in Shanghai.
+                 * @param {string} type - 'single', 'double', 'triple', or 'miss'
+                 * Hit types:
+                 *   single  → face value of round target
+                 *   double  → 2× target
+                 *   triple  → 3× target
+                 *   miss    → 0 points
+                 * Instant win ("Shanghai"): If a player hits Single + Double + Triple in one 3-dart turn
+                 *   they immediately win, regardless of score position.
+                 * Penalties on submitting a turn where ALL darts were misses (zero score):
+                 *   Round 3 miss → score reset to 0
+                 *   Round 5 miss → score halved (rounded up if odd)
+                 *   Round 8 miss → player eliminated (skipped for rounds 9-10)
+                 */
+                hitShanghai(type) {
+                    const p = this.players[this.activePlayer];
+                    if (!p) return;
+                    if (p.shanghaiEliminated) {
+                        this.shanghaiMessage = `${p.name} is eliminated — press ENTER to continue`;
+                        return;
+                    }
+                    const darts = p.shanghaiTurnDarts || 0;
+                    if (darts >= 3) {
+                        this.shanghaiMessage = '3 darts thrown — press ENTER to submit or UNDO to correct';
+                        return;
+                    }
+                    this.saveUndoState();
+                    const target = this.shanghaiRoundIndex + 1;
+                    let points = 0;
+                    if (type === 'single') points = target;
+                    else if (type === 'double') points = target * 2;
+                    else if (type === 'triple') points = target * 3;
+                    // miss → 0 points, dart still counted
+
+                    p.shanghaiScore = (p.shanghaiScore || 0) + points;
+                    p.shanghaiTurnDarts = darts + 1;
+                    if (!p.shanghaiTurnHits) p.shanghaiTurnHits = [];
+                    p.shanghaiTurnHits.push(type);
+
+                    // Check for Shanghai instant win: Single + Double + Triple all hit in one turn (any order).
+                    // Each scoring button may be hit more than once per turn (e.g. three Triples).
+                    const hits = p.shanghaiTurnHits;
+                    if (hits.includes('single') && hits.includes('double') && hits.includes('triple')) {
+                        const winMsg = `🎯 SHANGHAI! ${p.name} wins with a Single, Double & Triple on ${target}! Click New Match to start a new game.`;
+                        this.winMessage = winMsg;
+                        // Show the win message in the message space, then restart the game
+                        setTimeout(() => {
+                            this.startShanghaiNewGame();
+                            this.winMessage = '';
+                        }, 1400);
+                    }
+                },
+
+                /**
+                 * Submits the active player's Shanghai turn.
+                 * Applies penalties for missing the target on rounds 3, 5, 8.
+                 * Advances to the next non-eliminated player and next round when all players have thrown.
+                 */
+                submitShanghaiTurn() {
+                    if (!this.isShanghaiGameMode()) return;
+                    const p = this.players[this.activePlayer];
+                    if (!p) return;
+
+                    // If player is eliminated, just skip their turn
+                    if (p.shanghaiEliminated) {
+                        this.advanceShanghaiTurn(false);
+                        return;
+                    }
+
+                    this.saveUndoState();
+                    const target = this.shanghaiRoundIndex + 1;
+
+                    // Calculate turn score from recorded hits (a hit type may be recorded more than once per turn)
+                    let turnScore = 0;
+                    const hits = p.shanghaiTurnHits || [];
+                    for (const t of hits) {
+                        if (t === 'single') turnScore += target;
+                        else if (t === 'double') turnScore += target * 2;
+                        else if (t === 'triple') turnScore += target * 3;
+                    }
+
+                    // Apply penalty rules when player scored 0 on the target this turn
+                    if (turnScore === 0) {
+                        if (target === 3) {
+                            // Miss target 3: score reset to zero
+                            p.shanghaiScore = 0;
+                            this.shanghaiMessage = `${p.name} missed target 3 — score reset to 0!`;
+                        } else if (target === 5) {
+                            // Miss target 5: score halved (round up if odd before halving)
+                            const before = p.shanghaiScore || 0;
+                            const adjusted = before % 2 === 1 ? before + 1 : before;
+                            p.shanghaiScore = Math.floor(adjusted / 2);
+                            this.shanghaiMessage = `${p.name} missed target 5 — score halved to ${p.shanghaiScore}!`;
+                        } else if (target === 8) {
+                            // Miss target 8: player is eliminated from remaining rounds
+                            p.shanghaiEliminated = true;
+                            this.shanghaiMessage = `${p.name} missed target 8 — ELIMINATED!`;
+                            // In a 2-player game, if one player misses target 8, the other player wins
+                            if (this.players.length === 2) {
+                                const otherIdx = this.activePlayer === 0 ? 1 : 0;
+                                const other = this.players[otherIdx];
+                                if (!other.shanghaiEliminated) {
+                                    this.winMessage = `${other.name} WINS! Opponent missed target 8. Click New Match to start a new game.`;
+                                    this.isGameOver = true;
+                                    this.saveUndoStateSnapshot();
+                                    return;
+                                }
+                            }
+                        }
+                    } else {
+                        this.shanghaiMessage = '';
+                    }
+
+                    // Reset per-turn tracking flags
+                    p.shanghaiTurnDarts = 0;
+                    p.shanghaiTurnHits = [];
+
+                    this.advanceShanghaiTurn(true);
+                },
+
+                /**
+                 * Advances to the next player (skipping eliminated players).
+                 * When all players have completed the current round, increments to the next round.
+                 * When all 10 rounds are complete, declares the winner and restarts on the scoring screen.
+                 * @param {boolean} preserveMessage - When true, keeps the current penalty message visible briefly
+                 */
+                advanceShanghaiTurn(preserveMessage) {
+                    const totalPlayers = this.players.length;
+                    const nextPlayer = (this.activePlayer + 1) % totalPlayers;
+
+                    // If we wrapped back around to player 0, a full round cycle was completed
+                    if (nextPlayer === 0 || nextPlayer <= this.activePlayer) {
+                        this.shanghaiRoundIndex += 1;
+                        // Remove any message shown for the round that just ended so the
+                        // target warning (rounds 3, 5, 8) is cleared once the round target
+                        // moves to the next number.
+                        this.shanghaiMessage = '';
+                        // Show target-specific warning messages in the row above ENTER
+                        const newTarget = this.shanghaiRoundIndex + 1;
+                        if (newTarget === 3) {
+                            this.shanghaiMessage = 'If you miss a 3, your score goes to zero!';
+                        } else if (newTarget === 5) {
+                            this.shanghaiMessage = 'If you miss a 5, your score will be cut in half!';
+                        } else if (newTarget === 8) {
+                            this.shanghaiMessage = 'If you miss an 8, you will be out of the game!';
+                        }
+
+                        // Check game over (all 10 rounds done)
+                        if (this.shanghaiRoundIndex >= 10) {
+                            const eligible = this.players.filter((pl) => !pl.shanghaiEliminated);
+                            const pool = eligible.length > 0 ? eligible : this.players;
+                            const winner = pool.reduce((best, pl) =>
+                                (!best || (pl.shanghaiScore || 0) > (best.shanghaiScore || 0)) ? pl : best, null);
+                            if (winner) {
+                                    this.winMessage = `🏆 ${winner.name} wins Shanghai with ${winner.shanghaiScore} points! Click New Match to start a new game.`;
+                                    setTimeout(() => {
+                        this.isGameOver = true;
+                                        this.startShanghaiNewGame();
+                                        this.winMessage = '';
+                                    }, 1400);
+                            }
+                            return;
+                        }
+                    }
+
+                    this.activePlayer = nextPlayer;
+
+                    // Auto-skip eliminated players
+                    let safety = 0;
+                    while (this.players[this.activePlayer] && this.players[this.activePlayer].shanghaiEliminated && safety < totalPlayers * 10) {
+                        const wasAtEnd = this.activePlayer === totalPlayers - 1;
+                        this.activePlayer = (this.activePlayer + 1) % totalPlayers;
+                        if (wasAtEnd || this.activePlayer === 0) {
+                            this.shanghaiRoundIndex += 1;
+                            if (this.shanghaiRoundIndex >= 10) {
+                                const eligible = this.players.filter((pl) => !pl.shanghaiEliminated);
+                                const pool = eligible.length > 0 ? eligible : this.players;
+                                const winner = pool.reduce((best, pl) =>
+                                    (!best || (pl.shanghaiScore || 0) > (best.shanghaiScore || 0)) ? pl : best, null);
+                                if (winner) {
+                                    this.winMessage = `🏆 ${winner.name} wins Shanghai with ${winner.shanghaiScore} points! Click New Match to start a new game.`;
+                                    setTimeout(() => {
+                        this.isGameOver = true;
+                                        this.startShanghaiNewGame();
+                                        this.winMessage = '';
+                                    }, 1400);
+                                }
+                                return;
+                            }
+                        }
+                        safety++;
+                    }
+                },
+
+                /**
+                 * Resets the Shanghai game to round 1 WITHOUT returning to the menu.
+                 * All scores reset, eliminations cleared, stays on the scoring screen.
+                 */
+                startShanghaiNewGame() {
+                    this.players = this.players.map((p) => ({
+                        ...p,
+                        shanghaiScore: 0,
+                        shanghaiTurnDarts: 0,
+                        shanghaiEliminated: false
+                    }));
+                    this.shanghaiRoundIndex = 0;
+                    this.shanghaiMessage = '';
+                    this.activePlayer = 0;
+                    this.undoStack = [this.saveUndoStateSnapshot()];
+                },
+
+                /* ------------------------------------------------------------------
+                   BOWTIE GAME RULES & SCORING ENGINE
+                   ------------------------------------------------------------------ */
+                /** Defines the 12 sequential rounds of BowTie */
+                getBowTieRounds() {
+                    return [
+                        { key: 'free', label: 'Free', type: 'free' },
+                        { key: '20', label: '20', type: 'target', target: 20 },
+                        { key: '19', label: '19', type: 'target', target: 19 },
+                        { key: 'treble', label: 'Treble (T)', type: 'anyTreble' },
+                        { key: '18', label: '18', type: 'target', target: 18 },
+                        { key: '17', label: '17', type: 'target', target: 17 },
+                        { key: 'double', label: 'Double (D)', type: 'anyDouble' },
+                        { key: '16', label: '16', type: 'target', target: 16 },
+                        { key: '15', label: '15', type: 'target', target: 15 },
+                        { key: '3color', label: '3 Color', type: 'threeColor' },
+                        { key: 'bt', label: 'BowTie (BT)', type: 'bowtie' },
+                        { key: 'bull', label: 'Bull (B)', type: 'bull' }
+                    ];
+                },
+
+                /** Returns the round descriptor currently in progress */
+                getCurrentBowTieRound() {
+                    const rounds = this.getBowTieRounds();
+                    return rounds[Math.min(this.bowTieRoundIndex || 0, rounds.length - 1)] || rounds[0];
+                },
+
+                /** Checks if a given target corresponds to the currently active BowTie round */
+                isCurrentBowTieTarget(target) {
+                    const active = this.getCurrentBowTieRound();
+                    if (!active) return false;
+                    const activeIndex = this.getBowTieRounds().findIndex((round) => round.key === active.key);
+                    const targetIndex = this.getBowTieTargetIndex(target);
+                    return activeIndex === targetIndex;
+                },
+
+                /** Returns index 0-11 for a target label in BowTie */
+                getBowTieTargetIndex(target) {
+                    const targets = [
+                        'Free', 20, 19, 'Treble (T)', 18, 17, 'Double (D)',
+                        16, 15, '3 Color', 'BowTie (BT)', 'Bull (B)'
+                    ];
+                    const token = String(target || '').trim();
+                    return targets.findIndex((item) => String(item).trim() === token);
+                },
+
+                /** Splits players into rows of 4 for the BowTie scorecards grid */
+                getBowTiePlayerRows() {
+                    const rows = [];
+                    for (let index = 0; index < this.players.length; index += 4) {
+                        rows.push(this.players.slice(index, index + 4).map((player, offset) => ({
+                            ...player,
+                            index: index + offset
+                        })));
+                    }
+                    return rows;
+                },
+
+                /** Appends a clicked target number to the BowTie round input */
+                addBowTieRoundTarget(target) {
+                    if (!this.isBowTieGameMode()) return;
+                    this.bowTieMessage = '';
+                    if (['Free', 'Treble (T)', 'Double (D)', '3 Color', 'BowTie (BT)'].includes(target)) return;
+
+                    const normalizedTarget = typeof target === 'string' ? target.trim() : String(target);
+                    const value = normalizedTarget === 'Bull (B)' || normalizedTarget === 'B' ? 25 : Number(normalizedTarget);
+                    const current = (this.bowTieRoundInput || '').trim();
+                    const token = normalizedTarget === 'Bull (B)' || normalizedTarget === 'B'
+                        ? 'B'
+                        : (normalizedTarget === 'Treble (T)' ? 'T' : (normalizedTarget === 'Double (D)' ? 'D' : (normalizedTarget === '3 Color' ? '3C' : (normalizedTarget === 'BT' ? 'BT' : (normalizedTarget === 'Free' ? 'FREE' : String(value))))));
+
+                    this.bowTieRoundInput = current ? `${current} ${token}` : token;
+
+                    if (Number.isFinite(value) && value > 0) {
+                        this.bowTieDarts.push({
+                            value,
+                            multiplier: 1,
+                            color: value === 25 ? 'green' : (value % 2 === 0 ? 'black' : 'red')
+                        });
+                    }
+                },
+
+                /** Clears the current round input and dart hits in BowTie */
+                clearBowTieRoundInput() {
+                    this.bowTieRoundInput = '';
+                    this.bowTieDarts = [];
+                    this.bowTieMessage = '';
+                },
+
+                /** Parses raw text input (e.g. '20 20 18' or 'T20 60') into structured dart objects */
+                parseBowTieRoundInput() {
+                    const raw = String(this.bowTieRoundInput || '').trim();
+                    if (!raw) {
+                        return this.bowTieDarts.slice();
+                    }
+
+                    const round = this.getCurrentBowTieRound();
+                    const targetVal = round && (round.target !== undefined ? (round.target === 'B' ? 25 : Number(round.target)) : (round.type === 'bull' ? 25 : null));
+
+                    return raw
+                        .split(/[\s,+]+/)
+                        .filter(Boolean)
+                        .flatMap((token) => {
+                            const normalized = token.toUpperCase().trim();
+                            if (normalized === 'FREE') return [];
+                            if (normalized === '3C' || normalized === '3-COLOR') return [];
+                            if (normalized === 'BT') return [];
+                            if (normalized === 'B' || normalized === 'BULL') return [{ value: 25, multiplier: 1, color: 'green' }];
+                            if (normalized === 'T') return [];
+                            if (normalized === 'D') return [];
+                            if (normalized.startsWith('T')) return [{ value: Number(normalized.slice(1)) || 0, multiplier: 3, color: 'red' }];
+                            if (normalized.startsWith('D')) return [{ value: Number(normalized.slice(1)) || 0, multiplier: 2, color: 'black' }];
+
+                            if (/[*X]/.test(normalized)) {
+                                const parts = normalized.split(/[*X]/).map((p) => p.trim());
+                                if (parts.length === 2) {
+                                    let val1 = parts[0] === 'B' ? 25 : Number(parts[0]);
+                                    let val2 = parts[1] === 'B' ? 25 : Number(parts[1]);
+                                    if (Number.isFinite(val1) && Number.isFinite(val2)) {
+                                        if (val2 <= 3 && val1 > 3) {
+                                            return [{ value: val1, multiplier: val2, color: val1 === 25 ? 'green' : (val1 % 2 === 0 ? 'black' : 'red') }];
+                                        } else if (val1 <= 3 && val2 > 3) {
+                                            return [{ value: val2, multiplier: val1, color: val2 === 25 ? 'green' : (val2 % 2 === 0 ? 'black' : 'red') }];
+                                        } else {
+                                            return [{ value: val1 * val2, multiplier: 1, color: 'red' }];
+                                        }
+                                    }
+                                }
+                            }
+
+                            const value = Number(normalized);
+                            if (!Number.isFinite(value) || value <= 0) return [];
+
+                            if (targetVal && value !== targetVal && value % targetVal === 0 && (value / targetVal) <= 3) {
+                                const mult = value / targetVal;
+                                return [{
+                                    value: targetVal,
+                                    multiplier: mult,
+                                    color: targetVal === 25 ? 'green' : (targetVal % 2 === 0 ? 'black' : 'red')
+                                }];
+                            }
+
+                            return [{
+                                value: value,
+                                multiplier: 1,
+                                color: value === 25 ? 'green' : (value % 2 === 0 ? 'black' : 'red')
+                            }];
+                        })
+                        .filter((dart) => Number.isFinite(dart.value) && dart.value > 0);
+                },
+
+                /** Records a dart thrown in BowTie; auto-submits turn after 3 darts */
+                bowTieAddDart(value, multiplier = 1) {
+                    if (!this.isBowTieGameMode()) return;
+                    this.bowTieDarts.push({ 
+                        value: value === null ? 0 : Number(value), 
+                        multiplier: Number(multiplier) || 0, 
+                        color: value === null ? 'miss' : (value === 25 || value === 50 ? 'green' : (value % 2 === 0 ? 'black' : 'red')) 
+                    });
+                    if (this.bowTieDarts.length >= 3) {
+                        this.submitBowTieTurn();
+                    }
+                },
+
+                /** BowTie penalty rule: Halves player score (rounding up if odd) on missed target round */
+                rollBowTiePenalty(player) {
+                    const total = Number(player.bowTieScore || 0);
+                    const adjusted = total % 2 === 1 ? total + 1 : total;
+                    return Math.floor(adjusted / 2);
+                },
+
+                /** Resolves points scored or penalty applied for a BowTie round */
+                resolveBowTieRound(player, round, darts) {
+                    const current = Number(player.bowTieScore || 0);
+                    const sumPoints = (items) => items.reduce((total, dart) => total + (Number(dart.value) || 0) * (Number(dart.multiplier) || 1), 0);
+
+                    // Free Round: Any hits score points; no hits applies penalty
+                    if (round.type === 'free') {
+                        const hits = darts.filter((dart) => dart && Number(dart.value) > 0);
+                        if (!hits.length) return this.rollBowTiePenalty(player);
+                        return current + sumPoints(hits);
+                    }
+
+                    // Target Rounds (20, 19, 18, 17, 16, 15): Only specified target hits count
+                    if (round.type === 'target') {
+                        const hits = darts.filter((dart) => Number(dart.value) === Number(round.target));
+                        if (!hits.length) return this.rollBowTiePenalty(player);
+                        return current + sumPoints(hits);
+                    }
+
+                    // Special Rounds (Treble, Double, 3 Color, BowTie)
+                    if (round.type === 'anyTreble' || round.type === 'anyDouble' || round.type === 'threeColor' || round.type === 'bowtie') {
+                        const enteredPoints = darts.reduce((total, dart) => total + (Number(dart.value) || 0) * (Number(dart.multiplier) || 1), 0);
+                        if (enteredPoints <= 0) return this.rollBowTiePenalty(player);
+                        if (round.type === 'anyTreble' && enteredPoints % 3 !== 0) return this.rollBowTiePenalty(player);
+                        if (round.type === 'anyDouble' && enteredPoints % 2 !== 0) return this.rollBowTiePenalty(player);
+                        return current + enteredPoints;
+                    }
+
+                    // Bullseye Round: Only 25 (Single Bull) and 50 (Double Bull) count
+                    if (round.type === 'bull') {
+                        const hits = darts.filter((dart) => [25, 50].includes(Number(dart.value)));
+                        if (!hits.length) return this.rollBowTiePenalty(player);
+                        return current + sumPoints(hits);
+                    }
+
+                    return current;
+                },
+
+                /**
+                 * Submits the active player's BowTie turn.
+                 * Enforces the max score guard (> 180) across all games.
+                 */
+                submitBowTieTurn() {
+                    if (!this.isBowTieGameMode()) return;
+                    const player = this.players[this.activePlayer];
+                    if (!player) return;
+
+                    const round = this.getCurrentBowTieRound();
+                    const darts = this.parseBowTieRoundInput();
+                    const sumPoints = (items) => items.reduce((total, dart) => total + (Number(dart.value) || 0) * (Number(dart.multiplier) || 1), 0);
+                    const enteredPoints = sumPoints(darts);
+
+                    // Max score validation: A 3-dart turn score cannot exceed 180
+                    if (enteredPoints > 180) {
+                        this.bowTieMessage = 'The max score is 180, please correct the score and try ENTER again';
+                        return;
+                    }
+
+                    this.bowTieMessage = '';
+                    this.saveUndoState();
+                    const trustedSpecialRound = ['anyTreble', 'anyDouble', 'threeColor', 'bowtie'].includes(round.type);
+
+                    if (trustedSpecialRound) {
+                        const trebleValid = round.type !== 'anyTreble' || enteredPoints % 3 === 0;
+                        const doubleValid = round.type !== 'anyDouble' || enteredPoints % 2 === 0;
+
+                        if (enteredPoints > 0 && trebleValid && doubleValid) {
+                            player.bowTieScore = Number(player.bowTieScore || 0) + enteredPoints;
+                        } else {
+                            player.bowTieScore = this.rollBowTiePenalty(player);
+                        }
+                    } else {
+                        player.bowTieScore = this.resolveBowTieRound(player, round, darts);
+                    }
+
+                    this.bowTieDarts = [];
+                    this.bowTieRoundInput = '';
+                    this.activePlayer = (this.activePlayer + 1) % this.players.length;
+                    if (this.activePlayer === 0) {
+                        this.bowTieRoundIndex += 1;
+                    }
+
+                    // Game over check when all 12 rounds are finished
+                    if (this.bowTieRoundIndex >= this.getBowTieRounds().length) {
+                        const winner = this.players.reduce((best, currentPlayer) => {
+                            if (!best || Number(currentPlayer.bowTieScore) > Number(best.bowTieScore)) return currentPlayer;
+                            return best;
+                        }, null);
+                        if (winner) {
+                            this.winMessage = `${winner.name} wins BowTie with ${winner.bowTieScore} points! Click New Match to start a new game.`;
+                            // Show the win message in the message space, then reset for another game
+                        this.isGameOver = true;
+                            setTimeout(() => {
+                                this.players = this.players.map((pl) => ({
+                                    ...pl,
+                                    bowTieScore: 0,
+                                    turnDarts: 0
+                                }));
+                                this.activePlayer = 0;
+                                this.bowTieRoundIndex = 0;
+                                this.bowTieDarts = [];
+                                this.bowTieRoundInput = '';
+                                this.bowTieMessage = '';
+                                this.winMessage = '';
+                                this.undoStack = [this.saveUndoStateSnapshot()];
+                            }, 1400);
+                        }
+                    }
+                },
+
+                /* ------------------------------------------------------------------
+                   KEYPAD & TURN SCORING LOGIC (X01 & GENERAL)
+                   ------------------------------------------------------------------ */
+                /**
+                 * Handles on-screen numeric keypad input (digits 0-9, backspace, operators +, *).
+                 * Supports both BowTie and X01 active inputs.
+                 */
+                pressKey(val) {
+if (this.isGameOver) {
+                        return;
+                    }
+                    if (this.isBowTieGameMode()) {
+                        this.bowTieMessage = '';
+                        if (val === 'back') {
+                            this.bowTieRoundInput = (this.bowTieRoundInput || '').slice(0, -1);
+                            return;
+                        }
+
+                        if (!/[0-9+*xX]/.test(val)) return;
+
+                        const sanitized = (val.toLowerCase() === 'x' || val === '*') ? '*' : val;
+                        const current = String(this.bowTieRoundInput || '');
+                        const lastChar = current.slice(-1);
+
+                        // Prevent invalid operator repetition
+                        if (sanitized === '*') {
+                            if (!current || /[+*]/.test(lastChar)) return;
+                        } else if (sanitized === '+') {
+                            if (!current || /[+*]/.test(lastChar)) return;
+                        }
+
+                        this.bowTieRoundInput = current + sanitized;
+                        return;
+                    }
+
+                    // X01 Keypad Input Handling
+                    if (val === 'back') {
+                        this.currentTurnScore = this.currentTurnScore.slice(0, -1);
+                        return;
+                    }
+
+                    if (!/[0-9+*xX]/.test(val)) return;
+
+                    const sanitized = val.toLowerCase() === 'x' ? '*' : val;
+                    const current = this.currentTurnScore;
+                    const lastChar = current.slice(-1);
+
+                    if (sanitized === '*') {
+                        if (!current || /[+*]/.test(lastChar)) return;
+                    } else if (sanitized === '+') {
+                        if (!current || /[+*]/.test(lastChar)) return;
+                    } else {
+                        if (current === '0' && sanitized === '0') return;
+                    }
+
+                    this.currentTurnScore += sanitized;
+                },
+
+                /**
+                 * Evaluates the active mathematical score expression (e.g. '20*3 + 19').
+                 */
+                evaluateTurnScore() {
+                    const expr = this.currentTurnScore.replace(/x/gi, '*');
+                    if (!expr) return 0;
+
+                    try {
+                        const value = Function(`"use strict"; return (${expr});`)();
+                        if (!Number.isFinite(value)) return 0;
+                        return Math.max(0, value);
+                    } catch (error) {
+                        return 0;
+                    }
+                },
+
+                /** Computes turn total preview string for the score box */
+                turnTotalPreview() {
+                    const total = this.evaluateTurnScore();
+                    return this.currentTurnScore ? total.toString() : '0';
+                },
+
+                /** Computes new remaining score preview for the active player, indicating 'Bust' if invalid */
+                newScorePreview() {
+                    const p = this.players[this.activePlayer];
+                    if (!this.currentTurnScore) {
+                        return p.score;
+                    }
+
+                    const total = this.evaluateTurnScore();
+                    const next = p.score - total;
+                    // A score that exactly reaches 0 is a leg win, not a bust.
+                    // Once the leg is won, never show 'Bust' in the new score box.
+                    if (p.score === 0) {
+                        return 0;
+                    }
+                    // Bust only when the remaining score would drop below 0 or land on 1.
+                    if (next < 0 || next === 1) {
+                        return 'Bust';
+                    }
+                    return next;
+                },
+
+                /** Direct preset score submission (e.g. clicking 26, 41, 60, etc.) */
+                setScore(num) {
+                    this.currentTurnScore = num.toString();
+                    this.submitX01();
+                },
+
+                /** Dedicated bust button action (submits 0 score) */
+                bustTurn() {
+                    this.currentTurnScore = '0';
+                    this.submitX01();
+                },
+
+                /**
+                 * Submits the active player's X01 turn score.
+                 * Enforces the max score guard (> 180), bust rules, and leg win conditions.
+                 */
+                submitX01() {
+                    let pts = this.evaluateTurnScore();
+                    // Max score validation: A 3-dart turn score cannot exceed 180
+                    if (pts > 180) {
+                        this.x01BustMessage = 'The max score is 180, please correct the score and try ENTER again';
+                        return;
+                    }
+
+                    this.saveUndoState();
+                    const actingPlayer = this.activePlayer;
+                    let p = this.players[actingPlayer];
+                    
+                    // Validate standard X01 Bust rules (score cannot drop below 0 or equal 1)
+                    if (p.score - pts < 0 || p.score - pts === 1) {
+                        pts = 0; // Turn scores 0 points on bust
+                        this.x01BustMessage = 'You Busted....use UNDO to correct this if appropriate.';
+                    } else {
+                        // Message persists until another button is clicked (ENTER or UNDO)
+                    }
+
+                    this.lastTurn = { player: actingPlayer, pts: pts };
+                    p.history.push({ pts: pts, remaining: p.score - pts });
+                    p.score -= pts;
+
+                    // Leg Win Condition: Player reaches exactly 0
+                    if (p.score === 0) {
+                        this.winMessage = `${p.name} WINS THE LEG! Click New Match to start a new game.`;
+                        this.isGameOver = true;  // Disable buttons after win
+                        // Show the win message in the message space - persists until NEW MATCH is hit
+                        this.saveUndoStateSnapshot();
+                        return;
+                    }
+
+                    this.currentTurnScore = '';
+                    this.activePlayer = (this.activePlayer + 1) % this.players.length;
+                },
+
+                /** Calculates 3-dart running average for an X01 player */
+                getPlayerAvg(idx) {
+                    let p = this.players[idx];
+                    if (p.history.length === 0) return '0.00';
+                    let totalPts = p.history.reduce((acc, curr) => acc + curr.pts, 0);
+                    let avg = (totalPts / (p.history.length * 3)) * 3;
+                    return avg.toFixed(2);
+                },
+
+                /* ------------------------------------------------------------------
+                   X01 CHECKOUT SUGGESTION ENGINE
+                   ------------------------------------------------------------------ */
+                /** Returns checkout guidance object for the current preview score */
+                checkoutInfo() {
+                    return this.getCheckout(this.newScorePreview() === 'Bust' ? this.players[this.activePlayer].score : this.newScorePreview());
+                },
+
+                /** Calculates 2-dart and 3-dart double-finish routes for score <= 170 */
+                getCheckout(score) {
+                    const remaining = Number(score);
+                    if (!Number.isFinite(remaining) || remaining <= 1 || remaining > 170) {
+                        return { summary: 'Build Score', oneDart: '', twoDart: '', threeDart: '' };
+                    }
+
+                    const throwOptions = [];
+                    for (let n = 1; n <= 20; n++) {
+                        throwOptions.push({ value: n, label: String(n) });
+                        throwOptions.push({ value: n * 2, label: `D${n}` });
+                        throwOptions.push({ value: n * 3, label: `T${n}` });
+                    }
+                    throwOptions.push({ value: 25, label: 'Bull' });
+                    throwOptions.push({ value: 50, label: 'DBull' });
+                    throwOptions.sort((a, b) => b.value - a.value);
+
+                    const isValidFinish = (option) => {
+                        if (!option) return false;
+                        return option.label === 'DBull' || option.label.startsWith('D');
+                    };
+
+                    const priorityScore = (route) => {
+                        const routeText = route.map((item) => item.label).join(' ');
+                        if (remaining === 41) {
+                            if (routeText === '1 D20') return 0;
+                            if (routeText === '9 D16') return 1;
+                        }
+
+                        const total = route.reduce((sum, item) => sum + item.value, 0);
+                        if ([40, 32, 16].includes(total) && route.length === 1) return 0;
+
+                        const subtotal = route.slice(0, -1).reduce((sum, item) => sum + item.value, 0);
+                        if ([40, 32, 16].includes(subtotal)) return 0;
+                        return 1;
+                    };
+
+                    const findExactCheckout = (dartCount) => {
+                        const matches = [];
+                        const seen = new Set();
+
+                        const search = (target, combo, depth) => {
+                            if (depth === dartCount) {
+                                if (target === 0 && combo.length === dartCount && isValidFinish(combo[combo.length - 1])) {
+                                    const route = combo.map((t) => t.label);
+                                    const key = route.join('-');
+                                    if (!seen.has(key)) {
+                                        seen.add(key);
+                                        matches.push({ route: route.join(' '), throws: combo });
+                                    }
+                                }
+                                return;
+                            }
+
+                            for (const option of throwOptions) {
+                                const nextTarget = target - option.value;
+                                if (nextTarget < 0) continue;
+
+                                if (depth === dartCount - 1) {
+                                    if (nextTarget === 0 && isValidFinish(option)) {
+                                        const fullCombo = [...combo, option];
+                                        const route = fullCombo.map((t) => t.label);
+                                        const key = route.join('-');
+                                        if (!seen.has(key)) {
+                                            seen.add(key);
+                                            matches.push({ route: route.join(' '), throws: fullCombo });
+                                        }
+                                    }
+                                    continue;
+                                }
+
+                                search(nextTarget, [...combo, option], depth + 1);
+                            }
+                        };
+
+                        search(remaining, [], 0);
+                        return matches.sort((a, b) => {
+                            const diff = priorityScore(a.throws) - priorityScore(b.throws);
+                            if (diff !== 0) return diff;
+                            return a.route.localeCompare(b.route);
+                        }).map((match) => match.route);
+                    };
+
+                    // Check 1-dart checkout first (must be a valid double finish exactly equal to remaining)
+                    const oneDartOption = throwOptions.find((opt) => opt.value === remaining && isValidFinish(opt));
+                    const oneDart = oneDartOption ? oneDartOption.label : '';
+                    const twoDart = findExactCheckout(2)[0] || '';
+                    const threeDart = findExactCheckout(3)[0] || '';
+
+                    if (oneDart) {
+                        return { summary: '1-Dart checkout', oneDart, twoDart, threeDart };
+                    }
+                    if (twoDart && threeDart) {
+                        return { summary: 'Checkout route', oneDart: '', twoDart, threeDart };
+                    }
+                    if (twoDart) {
+                        return { summary: '2-Dart checkout', oneDart: '', twoDart, threeDart };
+                    }
+                    if (threeDart) {
+                        return { summary: '3-Dart checkout', oneDart: '', twoDart, threeDart };
+                    }
+                    return { summary: 'Standard route available', oneDart: '', twoDart, threeDart };
+                },
+
+                /* ------------------------------------------------------------------
+                   CRICKET GAME RULES & SCORING ENGINE
+                   ------------------------------------------------------------------ */
+                /**
+                 * Converts numerical marks count into traditional Cricket mark glyphs:
+                 * 0 = '-' (empty)
+                 * 1 = '/' (single slash)
+                 * 2 = 'X' (cross)
+                 * 3+ = '⨷' (closed circle with cross)
+                 */
+                renderMarks(marks) {
+                    if (marks === 0) return '-';
+                    if (marks === 1) return '/';
+                    if (marks === 2) return 'X';
+                    return '⨷';
+                },
+
+                /** Returns extra points scored on an open number for Cricket */
+                getCricketExtraScore(playerIndex, target) {
+                    const player = this.players[playerIndex];
+                    const otherIndex = playerIndex === 0 ? 1 : 0;
+                    const playerMarks = player.marks[target] || 0;
+                    const otherMarks = this.players[otherIndex].marks[target] || 0;
+                    const targetValue = target === 'B' ? 25 : Number(target);
+
+                    if (playerMarks < 3 || otherMarks >= 3) return '';
+
+                    const extraMarks = Math.max(0, playerMarks - 3);
+                    return extraMarks > 0 ? String(extraMarks * targetValue) : '';
+                },
+
+                /** Provides feedback string if a player scores a large number of hits */
+                getCricketHitFeedback(playerIndex) {
+                    const player = this.players[playerIndex];
+                    const totalClosedMarks = [20, 19, 18, 17, 16, 15, 'B'].reduce((sum, target) => {
+                        const closedIndexes = this.players
+                            .map((candidate, index) => ((candidate.marks[target] || 0) >= 3 ? index : -1))
+                            .filter((index) => index !== -1);
+
+                        if (closedIndexes.length !== 1) return sum;
+                        const winnerIndex = closedIndexes[0];
+                        if (winnerIndex !== playerIndex) return sum;
+                        return sum + (this.players[winnerIndex].marks[target] || 0);
+                    }, 0);
+
+                    const displayHits = Math.max(totalClosedMarks, player.turnDarts || 0);
+                    if (displayHits > 4) return `${player.name}: ${displayHits} hits`;
+                    return '';
+                },
+
+                /**
+                 * Helper placeholder for Cricket scores. Points in Cricket are permanently accumulated
+                 * on each valid hit in hitCricket() and restored directly via undo snapshots.
+                 */
+                recalcCricketScores() {
+                    // Points are accumulated incrementally on each valid dart hit and preserved
+                    // in undo snapshots so scores are never wiped out when opponents close targets.
+                },
+
+                /**
+                 * Records a hit on a Cricket target for the active player.
+                 * Enforces:
+                 * 1. Closed-for-game check: If all players have closed the number, no points can be scored.
+                 *    The click does NOT count as a dart and displays an alert in red font above UNDO and ENTER.
+                 * 2. Turn darts limit check: A player cannot exceed 3 darts per turn.
+                 * 3. Valid hit: Saves undo state, increments marks and turn darts.
+                 * 4. Point Scoring: If at least one opponent has not closed the target (< 3 marks),
+                 *    extra marks beyond 3 score points immediately. Points are never wiped out unless UNDO is pressed.
+                 */
+                hitCricket(playerIndex, target, multiplier) {
+                    const p = this.players[playerIndex];
+                    if (!p) return;
+
+                    const otherPlayers = this.players.filter((_, idx) => idx !== playerIndex);
+                    // In 3-Way Cricket, when a player has closed a number target, other players can NOT score on that target.
+                    // Therefore, active player can only score points if NO other player has closed it (all opponents < 3 marks).
+                    // In Standard 2-player Cricket, player scores if the opponent has < 3 marks.
+                    // Only the first user to close a target can get extra points,
+                    // and only while ALL other users do not have that target closed.
+                    const canScore = otherPlayers.every((opp) => (opp.marks[target] || 0) < 3);
+
+                    // 1. Closed target check:
+                    // A target click cannot score points or add marks if:
+                    // a) Every player in the match has at least 3 marks on this target (closed for the game), OR
+                    // b) The active player already has >= 3 marks AND cannot score points on it
+                    //    (e.g. in 3-Way Cricket another player has closed it).
+                    // Instead of counting this click as a dart, notify the player above UNDO/ENTER in red font.
+                    const isClosedForGame = this.players.length > 0 && this.players.every((player) => (player.marks[target] || 0) >= 3);
+                    const isClosedForActivePlayer = (p.marks[target] || 0) >= 3 && !canScore;
+
+                    if (isClosedForGame || isClosedForActivePlayer) {
+                        this.cricketHitLimitMessage = `${target} is already closed, select UNDO or ENTER or another number to continue`;
+                        return;
+                    }
+
+                    // 2. Turn darts limit check:
+                    // A player can throw a maximum of 3 darts per turn.
+                    if ((p.turnDarts || 0) >= 3) {
+                        this.cricketHitLimitMessage = '3 dart hits recorded, click on UNDO or ENTER to continue';
+                        return;
+                    }
+
+                    // 3. Valid dart hit:
+                    // Clear previous warning message and save undo state
+                    this.cricketHitLimitMessage = '';
+                    this.saveUndoState();
+
+                    const prevMarks = p.marks[target] || 0;
+                    const newMarks = prevMarks + multiplier;
+                    p.marks[target] = newMarks;
+                    p.turnDarts = (p.turnDarts || 0) + 1;
+
+                    // 4. Scoring logic (for ALL Cricket games):
+                    // In Cricket, a player scores points for any marks earned beyond 3 IF scoring is permitted:
+                    // - Standard Cricket: At least one opponent has not yet closed the target (< 3 marks).
+                    // - 3-Way Cricket: When a player has closed a target, other players can NOT score on that target
+                    //   (a player can only score points on extra hits if no other player has closed it).
+                    // Once earned, points are permanently kept and NEVER wiped out when an opponent closes
+                    // the target later. Scores are only rolled back when UNDO is clicked.
+                    if (canScore) {
+                        const prevScoringMarks = Math.max(0, prevMarks - 3);
+                        const newScoringMarks = Math.max(0, newMarks - 3);
+                        const newlyScoredMarks = newScoringMarks - prevScoringMarks;
+                        if (newlyScoredMarks > 0) {
+                            const targetValue = target === 'B' ? 25 : Number(target);
+                            p.cricketScore = (Number(p.cricketScore) || 0) + (newlyScoredMarks * targetValue);
+                        }
+                    }
+                },
+
+                /** Records a missed dart in Cricket */
+                missCricket() {
+                    this.submitCricketTurn();
+                },
+
+                /**
+                 * Submits the active player's Cricket turn.
+                 * Saves undo state, clears messages, resets turn darts, and advances to the next player.
+                 */
+                submitCricketTurn() {
+                    this.saveUndoState();
+                    this.cricketHitLimitMessage = '';
+                    const current = this.players[this.activePlayer];
+                    if (current) current.turnDarts = 0;
+
+                    // Cricket win condition: all targets closed AND score >= all other players
+                    const cricketTargets = [20, 19, 18, 17, 16, 15, 'B'];
+                    const allClosed = cricketTargets.every(t => (current.marks[t] || 0) >= 3);
+                    if (allClosed) {
+                        const currentScore = Number(current.cricketScore) || 0;
+                        const allOthersLowerOrEqual = this.players.every((p, idx) =>
+                            idx === this.activePlayer || (Number(p.cricketScore) || 0) <= currentScore
+                        );
+                        if (allOthersLowerOrEqual) {
+                            this.winMessage = `${current.name} WINS THE MATCH! Click New Match to start a new game.`;
+                            this.isGameOver = true;
+                            this.saveUndoStateSnapshot();
+                            return;
+                        }
+                    }
+
+                    this.activePlayer = (this.activePlayer + 1) % this.players.length;
+                },
+
+                /* ------------------------------------------------------------------
+                   GEOMETRIC DARTBOARD SEGMENTS (Helper utilities for board graphics)
+                   ------------------------------------------------------------------ */
+                /** Converts polar coordinates (angle & radius) to Cartesian (x, y) */
+                polarToCartesian(cx, cy, radius, angleDeg) {
+                    const radians = (angleDeg - 90) * (Math.PI / 180);
+                    return {
+                        x: cx + radius * Math.cos(radians),
+                        y: cy + radius * Math.sin(radians)
+                    };
+                },
+
+                /** Generates SVG path string for an annular ring segment */
+                describeRingSegment(cx, cy, innerR, outerR, startDeg, endDeg) {
+                    const startOuter = this.polarToCartesian(cx, cy, outerR, startDeg);
+                    const endOuter = this.polarToCartesian(cx, cy, outerR, endDeg);
+                    const startInner = this.polarToCartesian(cx, cy, innerR, startDeg);
+                    const endInner = this.polarToCartesian(cx, cy, innerR, endDeg);
+                    return [
+                        `M ${startOuter.x} ${startOuter.y}`,
+                        `L ${endOuter.x} ${endOuter.y}`,
+                        `L ${endInner.x} ${endInner.y}`,
+                        `L ${startInner.x} ${startInner.y}`,
+                        'Z'
+                    ].join(' ');
+                },
+
+                /** Returns geometry descriptors for standard 20-segment dartboard */
+                getDartboardSegments() {
+                    const numbers = [20, 1, 18, 4, 13, 6, 10, 15, 2, 17, 3, 19, 7, 16, 8, 11, 14, 9, 12, 5];
+                    const cx = 210;
+                    const cy = 210;
+                    return numbers.map((value, index) => {
+                        const startDeg = index * 18;
+                        const endDeg = startDeg + 18;
+                        const midDeg = (startDeg + endDeg) / 2;
+                        const labelPos = this.polarToCartesian(cx, cy, 76, midDeg);
+                        return {
+                            value,
+                            startDeg,
+                            endDeg,
+                            singlePath: this.describeRingSegment(cx, cy, 32, 66, startDeg, endDeg),
+                            triplePath: this.describeRingSegment(cx, cy, 66, 83, startDeg, endDeg),
+                            doublePath: this.describeRingSegment(cx, cy, 118, 138, startDeg, endDeg),
+                            labelX: labelPos.x,
+                            labelY: labelPos.y
+                        };
+                    });
+                }
+            };
+        }
+    </script>
+</body>
+</html>
