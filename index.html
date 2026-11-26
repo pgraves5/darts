@@ -19,6 +19,7 @@
             user-select: none; 
             min-height: 100vh; 
             min-height: 100dvh; 
+        html { zoom: 140%; }
         }
 
         /* Optimize touch response times on interactive elements */
@@ -32,6 +33,16 @@
         }
         .keypad-btn:active { 
             transform: scale(0.95); 
+        }
+
+        /* Flash animation when a player's score changes, returning to yellow */
+        @keyframes scoreFlash {
+            0%, 100% { color: #facc15; transform: scale(1); }
+            20%, 60% { color: #ffffff; transform: scale(1.18); text-shadow: 0 0 12px rgba(250, 204, 21, 0.9); }
+            40%, 80% { color: #ef4444; transform: scale(1.08); }
+        }
+        .score-flash {
+            animation: scoreFlash 0.9s ease-in-out;
         }
 
         /* Compact sizing overrides for mobile / small screen viewports */
@@ -162,7 +173,7 @@
                             <!-- Player Name (scaled 20%) -->
                             <div class="text-sm font-bold uppercase tracking-wider text-slate-300 truncate" x-text="player.name"></div>
                             <!-- Current Score: Remaining points for X01, Cricket points for Cricket (scaled 20%) -->
-                            <div :class="(activePlayer === index ? 'font-black' : 'font-normal') + (isX01GameMode() ? ' text-[2.2rem] my-0.5' : (isCricketGameMode() ? ' text-[2.5rem] my-0.5' : ' text-[44px] my-1'))" x-text="isX01GameMode() ? player.score : player.cricketScore"></div>
+                            <div :class="(activePlayer === index ? 'font-black' : 'font-normal') + (isX01GameMode() ? ' text-[2.2rem] my-0.5' : (isCricketGameMode() ? ' text-[3.5rem] my-0.5' : ' text-[44px] my-1')) + ' text-yellow-400' + (flashingPlayerIndex === index ? ' score-flash' : '')" x-text="isX01GameMode() ? player.score : player.cricketScore"></div>
                             <!-- 3-Dart Running Average (X01 games only; scaled 20%) -->
                             <template x-if="isX01GameMode()">
                                 <div class="text-xs text-slate-300">Avg: <span class="font-bold" x-text="getPlayerAvg(index)"></span></div>
@@ -188,9 +199,9 @@
                      Displays marks for targets: 20, 19, 18, 17, 16, 15, and Bullseye (B).
                      Includes Triple (T), Single (number), and Double (D) hit buttons. -->
                 <template x-if="isCricketGameMode()">
-                    <div class="w-full max-w-[538px] bg-slate-800 rounded-xl overflow-hidden border border-slate-700 text-lg mb-0 shadow">
+                    <div class="w-full max-w-[580px] bg-slate-800 rounded-xl overflow-hidden border border-slate-700 text-lg mb-0 shadow">
                         <!-- Column Headers: Player Names & Target Label (scaled 20%) -->
-                        <div class="grid text-center font-bold text-[32px] uppercase tracking-wide bg-slate-700 p-3" :style="'grid-template-columns: repeat(' + players.length + ', minmax(0, 1fr)) 1.2fr'">
+                        <div class="grid text-center font-bold text-[32px] uppercase tracking-wide bg-slate-700 p-3" :style="'grid-template-columns: repeat(' + players.length + ', minmax(0, 1fr)) 210px'">
                             <template x-for="(player, index) in players" :key="index">
                                 <div class="px-1"><span x-text="player.name"></span></div>
                             </template>
@@ -199,26 +210,26 @@
 
                         <!-- Target Rows: Mark indicators and interactive hit buttons (scaled 20%) -->
                         <template x-for="target in [20, 19, 18, 17, 16, 15, 'B']">
-                            <div class="grid px-2.5 py-0.5 text-center border-t border-slate-700 items-center font-mono font-bold gap-1" :style="'grid-template-columns: repeat(' + players.length + ', minmax(0, 1fr)) 1.2fr'">
+                            <div class="grid px-2.5 py-0.5 text-center border-t border-slate-700 items-center font-mono font-bold gap-1" :style="'grid-template-columns: repeat(' + players.length + ', minmax(0, 1fr)) 210px'">
                                 <!-- Player Marks Column: Displays -, /, X, or ⨷ (closed; scaled 20%) -->
                                 <template x-for="(player, index) in players" :key="index">
-                                    <div class="min-h-[48px] flex items-center justify-center text-red-400 text-[32px]">
+                                    <div class="min-h-[48px] flex items-center justify-center text-[44px]" :class="player.marks[target] > 0 ? 'text-yellow-400' : 'text-slate-400'">
                                         <span x-text="renderMarks(player.marks[target])"></span>
                                     </div>
                                 </template>
                                 <!-- Hit Controls Column: T (Triple), Target (Single), D (Double; scaled 20%) -->
-                                <div class="grid grid-cols-[34px_48px_34px] items-center justify-items-center justify-end gap-1.5 sm:gap-2.5 text-slate-200 bg-slate-900 py-1 rounded w-full ml-auto text-center">
+                                <div class="grid grid-cols-[48px_56px_48px] items-center justify-items-center justify-center gap-4 sm:gap-5 text-slate-200 bg-slate-900 py-1 px-1.5 rounded w-full ml-auto text-center">
                                     <!-- Triple button (not available for Bullseye) -->
                                     <template x-if="target !== 'B'">
-                                        <button @click="hitCricket(activePlayer, target, 3)" :disabled="isGameOver" class="w-[48px] h-[48px] bg-slate-700 hover:bg-slate-600 rounded text-[36px] flex items-center justify-center disabled:opacity-40">T</button>
+                                        <button @click="hitCricket(activePlayer, target, 3)" :disabled="isGameOver" class="w-[48px] h-[48px] bg-red-600 hover:bg-red-500 rounded text-[50px] text-white flex items-center justify-center disabled:opacity-40">T</button>
                                     </template>
                                     <template x-if="target === 'B'">
-                                        <div class="w-[34px] h-[34px]"></div>
+                                        <div class="w-[48px] h-[48px]"></div>
                                     </template>
                                     <!-- Single hit button (displays target number or 'B') -->
-                                    <button @click="hitCricket(activePlayer, target, 1)" :disabled="isGameOver" class="w-[56px] h-[44px] bg-slate-900 hover:bg-slate-700 rounded text-[36px] flex items-center justify-center disabled:opacity-40" x-text="target"></button>
+                                    <button @click="hitCricket(activePlayer, target, 1)" :disabled="isGameOver" class="w-[56px] h-[44px] bg-red-600 hover:bg-red-500 rounded text-[50px] text-white flex items-center justify-center disabled:opacity-40" x-text="target"></button>
                                     <!-- Double hit button -->
-                                    <button @click="hitCricket(activePlayer, target, 2)" :disabled="isGameOver" class="w-[48px] h-[48px] bg-slate-700 hover:bg-slate-600 rounded text-[36px] flex items-center justify-center disabled:opacity-40">D</button>
+                                    <button @click="hitCricket(activePlayer, target, 2)" :disabled="isGameOver" class="w-[48px] h-[48px] bg-red-600 hover:bg-red-500 rounded text-[50px] text-white flex items-center justify-center disabled:opacity-40">D</button>
                                 </div>
                             </div>
                         </template>
@@ -226,10 +237,21 @@
                 </template>
 
                 <!-- CRICKET KEYPAD / ACTION CONTROLS (scaled 20%)
-                     Contains UNDO and ENTER buttons, plus the reserved message banner.
+                     Contains Score for round box, UNDO and ENTER buttons, plus the reserved message banner.
                      Maintains min-h-[1.5rem] and \u00A0 by default so buttons stay large. -->
                 <template x-if="isCricketGameMode()">
-                    <div class="w-full max-w-[538px] mt-1 mb-1">
+                    <div class="w-full max-w-[580px] mt-1 mb-1">
+                        <!-- Cricket Round Input Display -->
+                        <div class="mb-1.5">
+                            <label class="block text-[11px] uppercase tracking-[0.18em] text-slate-400 mb-1">Score for round</label>
+                            <input
+                                type="text"
+                                readonly
+                                :value="cricketRoundInput"
+                                placeholder="T20 D19 18"
+                                class="w-full rounded-md border border-slate-600 bg-slate-950 px-2.5 py-2 text-base font-mono text-white placeholder:text-slate-500 outline-none"
+                            />
+                        </div>
                         <!-- Alert / Notification banner (e.g. closed target alert, 3-dart hit limit) -->
                         <div
                             class="w-full text-center text-red-500 font-bold text-sm mb-1 min-h-[1.5rem] flex items-center justify-center"
@@ -286,8 +308,8 @@
                                                 <div :class="activePlayer === player.index ? 'bg-slate-700 border-t-4 border-red-500' : 'bg-slate-900/70'" class="min-w-0 rounded-lg border border-slate-700 px-1 py-2 text-center">
                                                     <div class="text-[11px] font-bold uppercase tracking-wide text-slate-400 truncate" x-text="player.name"></div>
                                                     <div
-                                                        class="mt-1 font-black tracking-tight leading-none whitespace-nowrap"
-                                                        :class="(activePlayer === player.index ? 'font-black ' : 'font-normal ') + (String(player.bowTieScore).length >= 4 ? 'text-xl' : (String(player.bowTieScore).length === 3 ? 'text-2xl' : 'text-3xl'))"
+                                                        class="mt-1 font-black tracking-tight leading-none whitespace-nowrap text-yellow-400"
+                                                        :class="(activePlayer === player.index ? 'font-black ' : 'font-normal ') + (String(player.bowTieScore).length >= 4 ? 'text-xl' : (String(player.bowTieScore).length === 3 ? 'text-2xl' : 'text-3xl')) + (flashingPlayerIndex === player.index ? ' score-flash' : '')"
                                                         x-text="player.bowTieScore"
                                                     ></div>
                                                 </div>
@@ -371,7 +393,7 @@
                                     <div class="text-[11px] font-bold uppercase tracking-wide text-slate-400 truncate" x-text="player.name"></div>
                                     <div
                                         class="mt-1 font-black tracking-tight leading-none whitespace-nowrap"
-                                        :class="player.shanghaiEliminated ? 'text-2xl text-red-400' : (String(player.shanghaiScore).length >= 4 ? 'text-xl' : (String(player.shanghaiScore).length === 3 ? 'text-2xl' : 'text-3xl'))"
+                                        :class="(player.shanghaiEliminated ? 'text-2xl text-red-400' : 'text-yellow-400 ' + (String(player.shanghaiScore).length >= 4 ? 'text-xl' : (String(player.shanghaiScore).length === 3 ? 'text-2xl' : 'text-3xl'))) + (!player.shanghaiEliminated && flashingPlayerIndex === idx ? ' score-flash' : '')"
                                         x-text="player.shanghaiEliminated ? 'OUT' : player.shanghaiScore"
                                     ></div>
                                 </div>
@@ -555,8 +577,11 @@
                 bowTieDarts: [],                   // Recorded darts thrown in the current BowTie round
                 bowTieRoundInput: '',              // Text expression for BowTie round score
                 bowTieMessage: '',                 // Validation / alert message for BowTie (e.g. max score 180)
+                cricketRoundInput: '',             // Recorded button clicks for current Cricket turn (e.g. 'T20 D19 18')
                 cricketHitLimitMessage: '',        // Alert message for Cricket (closed target or 3-dart limit)
                 x01BustMessage: '',                // Alert message for X01 (Bust or max score 180)
+                flashingPlayerIndex: null,         // Index of player whose score is currently flashing
+                flashTimeoutId: null,              // Timeout handle for clearing score flash animation
                 // Shanghai state
                 shanghaiRoundIndex: 0,             // Current round index (0-9, representing targets 1-10)
                 shanghaiMessage: '',               // Alert/status message for Shanghai game
@@ -586,6 +611,7 @@
                         bowTieDarts: JSON.parse(JSON.stringify(this.bowTieDarts || [])),
                         bowTieRoundInput: this.bowTieRoundInput,
                         bowTieMessage: this.bowTieMessage,
+                        cricketRoundInput: this.cricketRoundInput,
                         cricketHitLimitMessage: this.cricketHitLimitMessage,
                         players: JSON.parse(JSON.stringify(this.players)),
                         lastTurn: this.lastTurn ? { ...this.lastTurn } : null,
@@ -610,6 +636,7 @@
                     this.bowTieDarts = JSON.parse(JSON.stringify(snapshot.bowTieDarts || []));
                     this.bowTieRoundInput = snapshot.bowTieRoundInput || '';
                     this.bowTieMessage = snapshot.bowTieMessage || '';
+                    this.cricketRoundInput = snapshot.cricketRoundInput || '';
                     this.cricketHitLimitMessage = snapshot.cricketHitLimitMessage || '';
                     this.players = JSON.parse(JSON.stringify(snapshot.players));
                     this.lastTurn = snapshot.lastTurn ? { ...snapshot.lastTurn } : null;
@@ -633,6 +660,7 @@
                         bowTieDarts: JSON.parse(JSON.stringify(this.bowTieDarts || [])),
                         bowTieRoundInput: this.bowTieRoundInput || '',
                         bowTieMessage: this.bowTieMessage || '',
+                        cricketRoundInput: this.cricketRoundInput || '',
                         cricketHitLimitMessage: this.cricketHitLimitMessage || '',
                         players: JSON.parse(JSON.stringify(this.players)),
                         lastTurn: this.lastTurn ? { ...this.lastTurn } : null,
@@ -662,6 +690,36 @@
                     this.shanghaiMessage = '';
                     this.winMessage = '';
                     this.isGameOver = false;  // Re-enable all buttons after undo
+                    this.clearScoreFlash();
+                },
+
+                /**
+                 * Triggers a brief flash animation on a player's score before returning to yellow.
+                 */
+                triggerScoreFlash(playerIndex) {
+                    if (this.flashTimeoutId) {
+                        clearTimeout(this.flashTimeoutId);
+                        this.flashTimeoutId = null;
+                    }
+                    this.flashingPlayerIndex = null;
+                    this.$nextTick(() => {
+                        this.flashingPlayerIndex = playerIndex;
+                        this.flashTimeoutId = setTimeout(() => {
+                            this.flashingPlayerIndex = null;
+                            this.flashTimeoutId = null;
+                        }, 900);
+                    });
+                },
+
+                /**
+                 * Immediately stops any active score flash so the score returns to solid yellow.
+                 */
+                clearScoreFlash() {
+                    if (this.flashTimeoutId) {
+                        clearTimeout(this.flashTimeoutId);
+                        this.flashTimeoutId = null;
+                    }
+                    this.flashingPlayerIndex = null;
                 },
 
                 /* ------------------------------------------------------------------
@@ -852,10 +910,12 @@
                     this.bowTieDarts = [];
                     this.bowTieRoundInput = '';
                     this.bowTieMessage = '';
+                    this.cricketRoundInput = '';
                     this.cricketHitLimitMessage = '';
                     this.x01BustMessage = '';
                     this.shanghaiRoundIndex = 0;
                     this.shanghaiMessage = '';
+                    this.clearScoreFlash();
                     this.screen = 'scoring';
                     this.undoStack = [this.saveUndoStateSnapshot()];
                 },
@@ -868,8 +928,10 @@
                     this.isGameOver = false;  // Reset game over state
                     this.x01BustMessage = '';
                     this.bowTieMessage = '';
+                    this.cricketRoundInput = '';
                     this.cricketHitLimitMessage = '';
                     this.winMessage = '';
+                    this.clearScoreFlash();
                 },
 
                 /* ------------------------------------------------------------------
@@ -915,6 +977,9 @@
                     // miss → 0 points, dart still counted
 
                     p.shanghaiScore = (p.shanghaiScore || 0) + points;
+                    if (points > 0) {
+                        this.triggerScoreFlash(this.activePlayer);
+                    }
                     p.shanghaiTurnDarts = darts + 1;
                     if (!p.shanghaiTurnHits) p.shanghaiTurnHits = [];
                     p.shanghaiTurnHits.push(type);
@@ -966,16 +1031,19 @@
                         if (target === 3) {
                             // Miss target 3: score reset to zero
                             p.shanghaiScore = 0;
+                            this.triggerScoreFlash(this.activePlayer);
                             this.shanghaiMessage = `${p.name} missed target 3 — score reset to 0!`;
                         } else if (target === 5) {
                             // Miss target 5: score halved (round up if odd before halving)
                             const before = p.shanghaiScore || 0;
                             const adjusted = before % 2 === 1 ? before + 1 : before;
                             p.shanghaiScore = Math.floor(adjusted / 2);
+                            this.triggerScoreFlash(this.activePlayer);
                             this.shanghaiMessage = `${p.name} missed target 5 — score halved to ${p.shanghaiScore}!`;
                         } else if (target === 8) {
                             // Miss target 8: player is eliminated from remaining rounds
                             p.shanghaiEliminated = true;
+                            this.clearScoreFlash();
                             this.shanghaiMessage = `${p.name} missed target 8 — ELIMINATED!`;
                             // In a 2-player game, if one player misses target 8, the other player wins
                             if (this.players.length === 2) {
@@ -988,8 +1056,11 @@
                                     return;
                                 }
                             }
+                        } else {
+                            this.clearScoreFlash();
                         }
                     } else {
+                        this.clearScoreFlash();
                         this.shanghaiMessage = '';
                     }
 
@@ -1322,6 +1393,8 @@
 
                     this.bowTieMessage = '';
                     this.saveUndoState();
+                    const actingPlayer = this.activePlayer;
+                    const prevScore = Number(player.bowTieScore || 0);
                     const trustedSpecialRound = ['anyTreble', 'anyDouble', 'threeColor', 'bowtie'].includes(round.type);
 
                     if (trustedSpecialRound) {
@@ -1335,6 +1408,12 @@
                         }
                     } else {
                         player.bowTieScore = this.resolveBowTieRound(player, round, darts);
+                    }
+
+                    if (Number(player.bowTieScore || 0) !== prevScore) {
+                        this.triggerScoreFlash(actingPlayer);
+                    } else {
+                        this.clearScoreFlash();
                     }
 
                     this.bowTieDarts = [];
@@ -1512,6 +1591,11 @@ if (this.isGameOver) {
                     this.lastTurn = { player: actingPlayer, pts: pts };
                     p.history.push({ pts: pts, remaining: p.score - pts });
                     p.score -= pts;
+                    if (pts > 0) {
+                        this.triggerScoreFlash(actingPlayer);
+                    } else {
+                        this.clearScoreFlash();
+                    }
 
                     // Leg Win Condition: Player reaches exactly 0
                     if (p.score === 0) {
@@ -1759,6 +1843,11 @@ if (this.isGameOver) {
                     p.marks[target] = newMarks;
                     p.turnDarts = (p.turnDarts || 0) + 1;
 
+                    // Record button clicked in Cricket "Score for round" text box:
+                    // T# for Triple, D# for Double, # for Single
+                    const hitToken = multiplier === 3 ? `T${target}` : (multiplier === 2 ? `D${target}` : `${target}`);
+                    this.cricketRoundInput = this.cricketRoundInput ? `${this.cricketRoundInput} ${hitToken}` : hitToken;
+
                     // 4. Scoring logic (for ALL Cricket games):
                     // In Cricket, a player scores points for any marks earned beyond 3 IF scoring is permitted:
                     // - Standard Cricket: At least one opponent has not yet closed the target (< 3 marks).
@@ -1773,6 +1862,7 @@ if (this.isGameOver) {
                         if (newlyScoredMarks > 0) {
                             const targetValue = target === 'B' ? 25 : Number(target);
                             p.cricketScore = (Number(p.cricketScore) || 0) + (newlyScoredMarks * targetValue);
+                            this.triggerScoreFlash(playerIndex);
                         }
                     }
                 },
@@ -1784,10 +1874,12 @@ if (this.isGameOver) {
 
                 /**
                  * Submits the active player's Cricket turn.
-                 * Saves undo state, clears messages, resets turn darts, and advances to the next player.
+                 * Saves undo state, clears messages, clears round input, resets turn darts, and advances to the next player.
                  */
                 submitCricketTurn() {
                     this.saveUndoState();
+                    this.clearScoreFlash();
+                    this.cricketRoundInput = '';
                     this.cricketHitLimitMessage = '';
                     const current = this.players[this.activePlayer];
                     if (current) current.turnDarts = 0;
