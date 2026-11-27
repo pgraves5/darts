@@ -3,6 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="mobile-web-app-capable" content="yes">
     <title>Dart Games - Scoreboard</title>
     <!-- Tailwind CSS CDN for reactive, responsive utility classes -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -63,22 +66,26 @@
         }
     </style>
 </head>
-<body class="bg-slate-900 text-white font-sans text-lg h-screen h-[100dvh] flex flex-col overflow-hidden" x-data="dartApp()" x-init="setupPlayerNames()">
+<body class="bg-slate-900 text-white font-sans text-lg h-screen h-[100dvh] flex flex-col overflow-hidden" x-data="dartApp()" x-init="initApp()">
 
     <!-- ========================================================================
          HEADER BAR
          Displays the current match mode / rules and quick navigation actions
          ======================================================================== -->
-    <header class="bg-slate-800 border-b border-slate-700 px-4 py-2.5 flex justify-between items-center shrink-0">
-        <div class="flex items-center space-x-3">
+    <header class="bg-slate-800 border-b border-slate-700 px-3 sm:px-4 py-2.5 flex justify-between items-center gap-2 shrink-0">
+        <div class="flex items-center space-x-3 min-w-0">
             <!-- Dynamic title: Shows mode and starting rules for X01, or game name for Cricket/BowTie/Shanghai (scaled by 20%) -->
-            <h1 class="text-2xl font-bold truncate" x-text="isX01GameMode() ? '🎯 ' + gameMode + ' - ' + startingMode : (isShanghaiGameMode() ? '🎯 Shanghai - Round ' + (shanghaiRoundIndex + 1) + ' (Target: ' + (shanghaiRoundIndex + 1) + ')' : '🎯 ' + gameMode)"></h1>
+            <h1 class="text-xl sm:text-2xl font-bold truncate" x-text="isX01GameMode() ? '🎯 ' + gameMode + ' - ' + startingMode : (isShanghaiGameMode() ? '🎯 Shanghai - Round ' + (shanghaiRoundIndex + 1) + ' (Target: ' + (shanghaiRoundIndex + 1) + ')' : '🎯 ' + gameMode)"></h1>
         </div>
-        <div class="flex items-center space-x-2">
+        <div class="flex items-center space-x-1.5 sm:space-x-2 shrink-0">
             <!-- New Match Button: Navigates back to setup/menu screen to start a fresh game -->
-            <button @click="resetMatch()" class="bg-red-600 hover:bg-red-500 text-base px-4 py-2 rounded font-bold transition-colors shadow">New Match</button>
-            <!-- HELP Button: Opens README.md located in the same directory as this HTML file -->
-            <a href="README.html" target="_blank" rel="noopener noreferrer" class="bg-red-700 hover:bg-red-600 text-base px-4 py-2 rounded font-bold transition-colors flex items-center justify-center text-white no-underline border border-red-400 shadow">HELP</a>
+            <button @click="resetMatch()" class="bg-red-600 hover:bg-red-500 text-xs sm:text-base px-2.5 py-1.5 sm:px-4 sm:py-2 rounded font-bold transition-colors shadow whitespace-nowrap">New Match</button>
+            <!-- HELP Button: Opens README.html located in the same directory as this HTML file -->
+            <a href="README.html" target="_blank" rel="noopener noreferrer" class="bg-red-700 hover:bg-red-600 text-xs sm:text-base px-2.5 py-1.5 sm:px-4 sm:py-2 rounded font-bold transition-colors flex items-center justify-center text-white no-underline border border-red-400 shadow whitespace-nowrap">HELP</a>
+            <!-- Reload Button: Reloads index.html from the web -->
+            <button @click="reloadPage()" class="bg-slate-700 hover:bg-slate-600 text-xs sm:text-base px-2.5 py-1.5 sm:px-4 sm:py-2 rounded font-bold transition-colors border border-slate-500 shadow whitespace-nowrap">Reload</button>
+            <!-- Exit Button: Exits full screen mode -->
+            <button data-exit-fullscreen @click="exitFullscreenMode()" class="bg-slate-700 hover:bg-slate-600 text-xs sm:text-base px-2.5 py-1.5 sm:px-4 sm:py-2 rounded font-bold transition-colors border border-slate-500 shadow whitespace-nowrap">Exit</button>
         </div>
     </header>
 
@@ -201,35 +208,35 @@
                 <template x-if="isCricketGameMode()">
                     <div class="w-full max-w-[580px] bg-slate-800 rounded-xl overflow-hidden border border-slate-700 text-lg mb-0 shadow">
                         <!-- Column Headers: Player Names & Target Label (scaled 20%) -->
-                        <div class="grid text-center font-bold text-[32px] uppercase tracking-wide bg-slate-700 p-3" :style="'grid-template-columns: repeat(' + players.length + ', minmax(0, 1fr)) 210px'">
+                        <div class="grid text-center font-bold text-[32px] uppercase tracking-wide bg-slate-700 p-3" :style="'grid-template-columns: repeat(' + players.length + ', minmax(0, 1fr)) 236px'">
                             <template x-for="(player, index) in players" :key="index">
-                                <div class="px-1"><span x-text="player.name"></span></div>
+                                <div class="px-1 flex items-center justify-center"><span x-text="player.name"></span></div>
                             </template>
-                            <div class="text-center">Target</div>
+                            <div class="text-center text-[38px] leading-none flex items-center justify-center">Target</div>
                         </div>
 
                         <!-- Target Rows: Mark indicators and interactive hit buttons (scaled 20%) -->
                         <template x-for="target in [20, 19, 18, 17, 16, 15, 'B']">
-                            <div class="grid px-2.5 py-0.5 text-center border-t border-slate-700 items-center font-mono font-bold gap-1" :style="'grid-template-columns: repeat(' + players.length + ', minmax(0, 1fr)) 210px'">
-                                <!-- Player Marks Column: Displays -, /, X, or ⨷ (closed; scaled 20%) -->
+                            <div class="grid px-2.5 py-0.5 text-center border-t border-slate-700 items-center font-mono font-bold gap-1" :style="'grid-template-columns: repeat(' + players.length + ', minmax(0, 1fr)) 236px'">
+                                <!-- Player Marks Column: Displays -, /, X, or ⨷ (closed; yellow only for current-turn hits, white for prior turns) -->
                                 <template x-for="(player, index) in players" :key="index">
-                                    <div class="min-h-[48px] flex items-center justify-center text-[44px]" :class="player.marks[target] > 0 ? 'text-yellow-400' : 'text-slate-400'">
+                                    <div class="min-h-[58px] flex items-center justify-center text-[53px] leading-none" :class="player.marks[target] > 0 ? (index === activePlayer && cricketTurnMarks[target] ? 'text-yellow-400' : 'text-white') : 'text-slate-400'">
                                         <span x-text="renderMarks(player.marks[target])"></span>
                                     </div>
                                 </template>
                                 <!-- Hit Controls Column: T (Triple), Target (Single), D (Double; scaled 20%) -->
-                                <div class="grid grid-cols-[48px_56px_48px] items-center justify-items-center justify-center gap-4 sm:gap-5 text-slate-200 bg-slate-900 py-1 px-1.5 rounded w-full ml-auto text-center">
+                                <div class="grid grid-cols-[58px_67px_58px] items-center justify-items-center justify-center gap-3 sm:gap-4 text-slate-200 bg-slate-900 py-1 px-1.5 rounded w-full ml-auto text-center">
                                     <!-- Triple button (not available for Bullseye) -->
                                     <template x-if="target !== 'B'">
-                                        <button @click="hitCricket(activePlayer, target, 3)" :disabled="isGameOver" class="w-[48px] h-[48px] bg-red-600 hover:bg-red-500 rounded text-[50px] text-white flex items-center justify-center disabled:opacity-40">T</button>
+                                        <button @click="hitCricket(activePlayer, target, 3)" :disabled="isGameOver" class="w-[58px] h-[58px] bg-red-600 hover:bg-red-500 rounded text-[60px] leading-none text-white flex items-center justify-center disabled:opacity-40">T</button>
                                     </template>
                                     <template x-if="target === 'B'">
-                                        <div class="w-[48px] h-[48px]"></div>
+                                        <div class="w-[58px] h-[58px]"></div>
                                     </template>
                                     <!-- Single hit button (displays target number or 'B') -->
-                                    <button @click="hitCricket(activePlayer, target, 1)" :disabled="isGameOver" class="w-[56px] h-[44px] bg-red-600 hover:bg-red-500 rounded text-[50px] text-white flex items-center justify-center disabled:opacity-40" x-text="target"></button>
+                                    <button @click="hitCricket(activePlayer, target, 1)" :disabled="isGameOver" class="w-[67px] h-[58px] bg-red-600 hover:bg-red-500 rounded text-[60px] leading-none text-white flex items-center justify-center disabled:opacity-40" x-text="target"></button>
                                     <!-- Double hit button -->
-                                    <button @click="hitCricket(activePlayer, target, 2)" :disabled="isGameOver" class="w-[48px] h-[48px] bg-red-600 hover:bg-red-500 rounded text-[50px] text-white flex items-center justify-center disabled:opacity-40">D</button>
+                                    <button @click="hitCricket(activePlayer, target, 2)" :disabled="isGameOver" class="w-[58px] h-[58px] bg-red-600 hover:bg-red-500 rounded text-[60px] leading-none text-white flex items-center justify-center disabled:opacity-40">D</button>
                                 </div>
                             </div>
                         </template>
@@ -243,7 +250,6 @@
                     <div class="w-full max-w-[580px] mt-1 mb-1">
                         <!-- Cricket Round Input Display -->
                         <div class="mb-1.5">
-                            <label class="block text-[11px] uppercase tracking-[0.18em] text-slate-400 mb-1">Score for round</label>
                             <input
                                 type="text"
                                 readonly
@@ -578,6 +584,7 @@
                 bowTieRoundInput: '',              // Text expression for BowTie round score
                 bowTieMessage: '',                 // Validation / alert message for BowTie (e.g. max score 180)
                 cricketRoundInput: '',             // Recorded button clicks for current Cricket turn (e.g. 'T20 D19 18')
+                cricketTurnMarks: {},              // Targets hit by the active player during the current Cricket turn
                 cricketHitLimitMessage: '',        // Alert message for Cricket (closed target or 3-dart limit)
                 x01BustMessage: '',                // Alert message for X01 (Bust or max score 180)
                 flashingPlayerIndex: null,         // Index of player whose score is currently flashing
@@ -592,6 +599,114 @@
                 ],
                 lastTurn: null,                    // Details of the most recent completed turn
                 undoStack: [],                     // Stack of game state snapshots for multi-level undo
+                fullscreenOptOut: false,           // Prevents auto-re-entering fullscreen after user clicks Exit
+                fullscreenListenersAttached: false,
+
+                /* ------------------------------------------------------------------
+                   FULLSCREEN & PAGE NAVIGATION METHODS
+                   ------------------------------------------------------------------ */
+                initApp() {
+                    this.setupPlayerNames();
+                    this.initFullscreenSupport();
+                },
+
+                /**
+                 * Returns true when running on a mobile device or iPad (including iPadOS).
+                 */
+                isMobileOrIpad() {
+                    const ua = navigator.userAgent || '';
+                    const isMobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua);
+                    const isIpadOS = (navigator.platform === 'MacIntel' || /Macintosh/i.test(ua)) && navigator.maxTouchPoints > 1;
+                    return isMobileUA || isIpadOS;
+                },
+
+                /**
+                 * Returns true if the document is currently in fullscreen mode.
+                 */
+                isFullscreenActive() {
+                    return Boolean(
+                        document.fullscreenElement ||
+                        document.webkitFullscreenElement ||
+                        document.mozFullScreenElement ||
+                        document.msFullscreenElement
+                    );
+                },
+
+                /**
+                 * Requests fullscreen mode on the root document element.
+                 */
+                enterFullscreenMode() {
+                    if (this.isFullscreenActive()) return;
+                    const el = document.documentElement;
+                    const req = el.requestFullscreen
+                        || el.webkitRequestFullscreen
+                        || el.mozRequestFullScreen
+                        || el.msRequestFullscreen;
+                    if (req) {
+                        try {
+                            const result = req.call(el);
+                            if (result && typeof result.catch === 'function') {
+                                result.catch(() => {});
+                            }
+                        } catch (e) {}
+                    }
+                },
+
+                /**
+                 * Exits fullscreen mode and prevents automatic re-entry until reload.
+                 */
+                exitFullscreenMode() {
+                    this.fullscreenOptOut = true;
+                    const exitFn = document.exitFullscreen
+                        || document.webkitExitFullscreen
+                        || document.webkitCancelFullScreen
+                        || document.mozCancelFullScreen
+                        || document.msExitFullscreen;
+                    if (exitFn && this.isFullscreenActive()) {
+                        try {
+                            const result = exitFn.call(document);
+                            if (result && typeof result.catch === 'function') {
+                                result.catch(() => {});
+                            }
+                        } catch (e) {}
+                    }
+                },
+
+                /**
+                 * Reloads index.html from the web, bypassing cached responses where supported.
+                 */
+                reloadPage() {
+                    const targetUrl = new URL('index.html', window.location.href).href;
+                    fetch(targetUrl, { cache: 'reload' })
+                        .catch(() => {})
+                        .finally(() => {
+                            if (window.location.pathname.endsWith('/index.html')) {
+                                window.location.reload();
+                            } else {
+                                window.location.href = targetUrl;
+                            }
+                        });
+                },
+
+                /**
+                 * Enables automatic fullscreen mode on mobile and iPad across all screens and games.
+                 */
+                initFullscreenSupport() {
+                    if (!this.isMobileOrIpad() || this.fullscreenListenersAttached) return;
+                    this.fullscreenListenersAttached = true;
+
+                    // Attempt immediate fullscreen if permitted by the browser/webview
+                    this.enterFullscreenMode();
+
+                    // Browsers require a user gesture for Fullscreen API; enter on first tap/click
+                    const ensureFullscreenOnGesture = (event) => {
+                        if (this.fullscreenOptOut || this.isFullscreenActive()) return;
+                        if (event.target && event.target.closest && event.target.closest('[data-exit-fullscreen]')) return;
+                        this.enterFullscreenMode();
+                    };
+                    document.addEventListener('pointerdown', ensureFullscreenOnGesture, { capture: true, passive: true });
+                    document.addEventListener('click', ensureFullscreenOnGesture, { capture: true, passive: true });
+                },
 
                 /* ------------------------------------------------------------------
                    UNDO & STATE PERSISTENCE METHODS
@@ -612,6 +727,7 @@
                         bowTieRoundInput: this.bowTieRoundInput,
                         bowTieMessage: this.bowTieMessage,
                         cricketRoundInput: this.cricketRoundInput,
+                        cricketTurnMarks: { ...(this.cricketTurnMarks || {}) },
                         cricketHitLimitMessage: this.cricketHitLimitMessage,
                         players: JSON.parse(JSON.stringify(this.players)),
                         lastTurn: this.lastTurn ? { ...this.lastTurn } : null,
@@ -637,6 +753,7 @@
                     this.bowTieRoundInput = snapshot.bowTieRoundInput || '';
                     this.bowTieMessage = snapshot.bowTieMessage || '';
                     this.cricketRoundInput = snapshot.cricketRoundInput || '';
+                    this.cricketTurnMarks = { ...(snapshot.cricketTurnMarks || {}) };
                     this.cricketHitLimitMessage = snapshot.cricketHitLimitMessage || '';
                     this.players = JSON.parse(JSON.stringify(snapshot.players));
                     this.lastTurn = snapshot.lastTurn ? { ...snapshot.lastTurn } : null;
@@ -661,6 +778,7 @@
                         bowTieRoundInput: this.bowTieRoundInput || '',
                         bowTieMessage: this.bowTieMessage || '',
                         cricketRoundInput: this.cricketRoundInput || '',
+                        cricketTurnMarks: { ...(this.cricketTurnMarks || {}) },
                         cricketHitLimitMessage: this.cricketHitLimitMessage || '',
                         players: JSON.parse(JSON.stringify(this.players)),
                         lastTurn: this.lastTurn ? { ...this.lastTurn } : null,
@@ -911,6 +1029,7 @@
                     this.bowTieRoundInput = '';
                     this.bowTieMessage = '';
                     this.cricketRoundInput = '';
+                    this.cricketTurnMarks = {};
                     this.cricketHitLimitMessage = '';
                     this.x01BustMessage = '';
                     this.shanghaiRoundIndex = 0;
@@ -918,17 +1037,24 @@
                     this.clearScoreFlash();
                     this.screen = 'scoring';
                     this.undoStack = [this.saveUndoStateSnapshot()];
+                    if (this.isMobileOrIpad() && !this.fullscreenOptOut) {
+                        this.enterFullscreenMode();
+                    }
                 },
 
                 /**
                  * Returns back to the menu screen to configure a new match.
                  */
                 resetMatch() {
+                    if (this.isMobileOrIpad() && !this.fullscreenOptOut) {
+                        this.enterFullscreenMode();
+                    }
                     this.screen = 'menu';
                     this.isGameOver = false;  // Reset game over state
                     this.x01BustMessage = '';
                     this.bowTieMessage = '';
                     this.cricketRoundInput = '';
+                    this.cricketTurnMarks = {};
                     this.cricketHitLimitMessage = '';
                     this.winMessage = '';
                     this.clearScoreFlash();
@@ -1842,6 +1968,7 @@ if (this.isGameOver) {
                     const newMarks = prevMarks + multiplier;
                     p.marks[target] = newMarks;
                     p.turnDarts = (p.turnDarts || 0) + 1;
+                    this.cricketTurnMarks[target] = true;
 
                     // Record button clicked in Cricket "Score for round" text box:
                     // T# for Triple, D# for Double, # for Single
@@ -1880,6 +2007,7 @@ if (this.isGameOver) {
                     this.saveUndoState();
                     this.clearScoreFlash();
                     this.cricketRoundInput = '';
+                    this.cricketTurnMarks = {};
                     this.cricketHitLimitMessage = '';
                     const current = this.players[this.activePlayer];
                     if (current) current.turnDarts = 0;
