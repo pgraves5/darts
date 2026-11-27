@@ -5,7 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Dart Games">
     <meta name="mobile-web-app-capable" content="yes">
+    <link rel="manifest" href="manifest.json">
     <title>Dart Games - Scoreboard</title>
     <!-- Tailwind CSS CDN for reactive, responsive utility classes -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -88,6 +90,32 @@
             <button data-exit-fullscreen @click="exitFullscreenMode()" class="bg-slate-700 hover:bg-slate-600 text-xs sm:text-base px-2.5 py-1.5 sm:px-4 sm:py-2 rounded font-bold transition-colors border border-slate-500 shadow whitespace-nowrap">Exit</button>
         </div>
     </header>
+
+    <!-- Full-Screen Prompt Pop-up for Mobile (Apple & Android) and iPad -->
+    <div x-show="showFullscreenPopup" x-cloak class="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-slate-800 border border-slate-600 rounded-2xl max-w-sm w-full p-5 shadow-2xl text-center space-y-4">
+            <h2 class="text-xl font-black text-white">Use Full Screen</h2>
+            <template x-if="canUseFullscreenApi() && !fullscreenBlockedFallback">
+                <div class="space-y-4">
+                    <p class="text-sm text-slate-300">Hide browser tabs and control bars so the complete screen is used by the app.</p>
+                    <div class="flex flex-col gap-2">
+                        <button @click="confirmEnterFullscreen()" class="w-full bg-red-600 hover:bg-red-500 text-white font-bold py-3 px-4 rounded-xl text-base shadow transition-colors">Enter Full Screen</button>
+                        <button data-exit-fullscreen @click="dismissFullscreenPopup()" class="w-full bg-slate-700 hover:bg-slate-600 text-slate-200 font-semibold py-2.5 px-4 rounded-xl text-sm transition-colors">Not Now</button>
+                    </div>
+                </div>
+            </template>
+            <template x-if="!canUseFullscreenApi() || fullscreenBlockedFallback">
+                <div class="space-y-4 text-left">
+                    <p class="text-sm text-slate-300 text-center">To hide Safari&rsquo;s tabs and control bars on this device and use the complete screen:</p>
+                    <ol class="text-sm text-slate-200 space-y-2 list-decimal list-inside bg-slate-900/70 rounded-xl p-3 border border-slate-700">
+                        <li>Tap the <span class="font-bold text-white">Share</span> button in your browser toolbar.</li>
+                        <li>Tap <span class="font-bold text-white">Add to Home Screen</span>, then open <span class="font-bold text-white">Dart Games</span> from your Home Screen.</li>
+                    </ol>
+                    <button data-exit-fullscreen @click="dismissFullscreenPopup()" class="w-full bg-red-600 hover:bg-red-500 text-white font-bold py-3 px-4 rounded-xl text-base shadow transition-colors">Got It</button>
+                </div>
+            </template>
+        </div>
+    </div>
 
     <!-- ========================================================================
          MAIN CONTAINER
@@ -601,6 +629,8 @@
                 undoStack: [],                     // Stack of game state snapshots for multi-level undo
                 fullscreenOptOut: false,           // Prevents auto-re-entering fullscreen after user clicks Exit
                 fullscreenListenersAttached: false,
+                showFullscreenPopup: false,        // Shows full-screen prompt pop-up on mobile/iPad when browser chrome is visible
+                fullscreenBlockedFallback: false,  // True if requestFullscreen was rejected and Home Screen instructions should be shown
 
                 /* ------------------------------------------------------------------
                    FULLSCREEN & PAGE NAVIGATION METHODS
@@ -621,6 +651,32 @@
                 },
 
                 /**
+                 * Returns true when running as an installed/Home Screen standalone or fullscreen web app.
+                 */
+                isStandaloneMode() {
+                    return Boolean(
+                        window.navigator.standalone === true ||
+                        (window.matchMedia && (
+                            window.matchMedia('(display-mode: fullscreen)').matches ||
+                            window.matchMedia('(display-mode: standalone)').matches
+                        ))
+                    );
+                },
+
+                /**
+                 * Returns true if the browser exposes the Fullscreen API on the root element.
+                 */
+                canUseFullscreenApi() {
+                    const el = document.documentElement;
+                    return Boolean(
+                        el.requestFullscreen ||
+                        el.webkitRequestFullscreen ||
+                        el.mozRequestFullScreen ||
+                        el.msRequestFullscreen
+                    );
+                },
+
+                /**
                  * Returns true if the document is currently in fullscreen mode.
                  */
                 isFullscreenActive() {
@@ -633,23 +689,61 @@
                 },
 
                 /**
-                 * Requests fullscreen mode on the root document element.
+                 * Requests fullscreen mode on the root document element, hiding browser navigation UI.
                  */
                 enterFullscreenMode() {
-                    if (this.isFullscreenActive()) return;
-                    const el = document.documentElement;
-                    const req = el.requestFullscreen
-                        || el.webkitRequestFullscreen
-                        || el.mozRequestFullScreen
-                        || el.msRequestFullscreen;
-                    if (req) {
-                        try {
-                            const result = req.call(el);
-                            if (result && typeof result.catch === 'function') {
-                                result.catch(() => {});
-                            }
-                        } catch (e) {}
+                    if (this.isFullscreenActive() || this.isStandaloneMode()) {
+                        this.showFullscreenPopup = false;
+                        return Promise.resolve(true);
                     }
+                    const el = document.documentElement;
+                    try {
+                        if (el.requestFullscreen) {
+                            let res;
+                            try {
+                                res = el.requestFullscreen({ navigationUI: 'hide' });
+                            } catch (optErr) {
+                                res = el.requestFullscreen();
+                            }
+                            return Promise.resolve(res).then(() => {
+                                this.showFullscreenPopup = false;
+                                return true;
+                            }).catch(() => false);
+                        }
+                        const req = el.webkitRequestFullscreen
+                            || el.mozRequestFullScreen
+                            || el.msRequestFullscreen;
+                        if (req) {
+                            const res = req.call(el);
+                            return Promise.resolve(res).then(() => {
+                                this.showFullscreenPopup = false;
+                                return true;
+                            }).catch(() => false);
+                        }
+                    } catch (e) {}
+                    return Promise.resolve(false);
+                },
+
+                /**
+                 * Triggered by the "Enter Full Screen" button in the pop-up.
+                 */
+                confirmEnterFullscreen() {
+                    this.fullscreenOptOut = false;
+                    this.enterFullscreenMode().then((entered) => {
+                        if (entered || this.isFullscreenActive()) {
+                            this.showFullscreenPopup = false;
+                        } else {
+                            this.fullscreenBlockedFallback = true;
+                        }
+                    });
+                },
+
+                /**
+                 * Dismisses the full-screen pop-up without forcing fullscreen.
+                 */
+                dismissFullscreenPopup() {
+                    this.showFullscreenPopup = false;
+                    this.fullscreenOptOut = true;
                 },
 
                 /**
@@ -657,6 +751,7 @@
                  */
                 exitFullscreenMode() {
                     this.fullscreenOptOut = true;
+                    this.showFullscreenPopup = false;
                     const exitFn = document.exitFullscreen
                         || document.webkitExitFullscreen
                         || document.webkitCancelFullScreen
@@ -689,22 +784,37 @@
                 },
 
                 /**
-                 * Enables automatic fullscreen mode on mobile and iPad across all screens and games.
+                 * Enables automatic fullscreen mode and pop-up prompt on mobile and iPad across all screens and games.
                  */
                 initFullscreenSupport() {
                     if (!this.isMobileOrIpad() || this.fullscreenListenersAttached) return;
                     this.fullscreenListenersAttached = true;
 
-                    // Attempt immediate fullscreen if permitted by the browser/webview
-                    this.enterFullscreenMode();
+                    const syncPopupVisibility = () => {
+                        if (this.isFullscreenActive() || this.isStandaloneMode()) {
+                            this.showFullscreenPopup = false;
+                        } else if (!this.fullscreenOptOut) {
+                            this.showFullscreenPopup = true;
+                        }
+                    };
 
-                    // Browsers require a user gesture for Fullscreen API; enter on first tap/click
+                    document.addEventListener('fullscreenchange', syncPopupVisibility);
+                    document.addEventListener('webkitfullscreenchange', syncPopupVisibility);
+
+                    // Attempt immediate fullscreen if permitted by the browser/webview; otherwise show the pop-up
+                    this.enterFullscreenMode().then((entered) => {
+                        if (!entered && !this.isFullscreenActive() && !this.isStandaloneMode() && !this.fullscreenOptOut) {
+                            this.showFullscreenPopup = true;
+                        }
+                    });
+
+                    // Browsers require a trusted user gesture (click/touchend) for Fullscreen API
                     const ensureFullscreenOnGesture = (event) => {
-                        if (this.fullscreenOptOut || this.isFullscreenActive()) return;
+                        if (this.fullscreenOptOut || this.isFullscreenActive() || this.isStandaloneMode()) return;
                         if (event.target && event.target.closest && event.target.closest('[data-exit-fullscreen]')) return;
                         this.enterFullscreenMode();
                     };
-                    document.addEventListener('pointerdown', ensureFullscreenOnGesture, { capture: true, passive: true });
+                    document.addEventListener('touchend', ensureFullscreenOnGesture, { capture: true, passive: true });
                     document.addEventListener('click', ensureFullscreenOnGesture, { capture: true, passive: true });
                 },
 
