@@ -83,11 +83,11 @@
             <!-- New Match Button: Navigates back to setup/menu screen to start a fresh game -->
             <button @click="resetMatch()" class="bg-red-600 hover:bg-red-500 text-xs sm:text-base px-2.5 py-1.5 sm:px-4 sm:py-2 rounded font-bold transition-colors shadow whitespace-nowrap">New Match</button>
             <!-- HELP Button: Opens README.html located in the same directory as this HTML file -->
-            <a href="README.html" target="_blank" rel="noopener noreferrer" class="bg-red-700 hover:bg-red-600 text-xs sm:text-base px-2.5 py-1.5 sm:px-4 sm:py-2 rounded font-bold transition-colors flex items-center justify-center text-white no-underline border border-red-400 shadow whitespace-nowrap">HELP</a>
+            <a href="README.html" target="_blank" rel="noopener noreferrer" class="bg-yellow-500 hover:bg-yellow-400 text-slate-900 text-xs sm:text-base px-2.5 py-1.5 sm:px-4 sm:py-2 rounded font-bold transition-colors flex items-center justify-center no-underline border border-yellow-300 shadow whitespace-nowrap">HELP</a>
             <!-- Reload Button: Reloads index.html from the web -->
-            <button @click="reloadPage()" class="bg-slate-700 hover:bg-slate-600 text-xs sm:text-base px-2.5 py-1.5 sm:px-4 sm:py-2 rounded font-bold transition-colors border border-slate-500 shadow whitespace-nowrap">Reload</button>
+            <button @click="reloadPage()" class="bg-sky-400 hover:bg-sky-300 text-slate-900 text-xs sm:text-base px-2.5 py-1.5 sm:px-4 sm:py-2 rounded font-bold transition-colors border border-sky-200 shadow whitespace-nowrap">Reload</button>
             <!-- Exit Button: Exits full screen mode -->
-            <button data-exit-fullscreen @click="exitFullscreenMode()" class="bg-slate-700 hover:bg-slate-600 text-xs sm:text-base px-2.5 py-1.5 sm:px-4 sm:py-2 rounded font-bold transition-colors border border-slate-500 shadow whitespace-nowrap">Exit</button>
+            <button data-exit-fullscreen @click="exitFullscreenMode()" class="bg-orange-500 hover:bg-orange-400 text-white text-xs sm:text-base px-2.5 py-1.5 sm:px-4 sm:py-2 rounded font-bold transition-colors border border-orange-300 shadow whitespace-nowrap">Exit</button>
         </div>
     </header>
 
@@ -209,9 +209,9 @@
                             <div class="text-sm font-bold uppercase tracking-wider text-slate-300 truncate" x-text="player.name"></div>
                             <!-- Current Score: Remaining points for X01, Cricket points for Cricket (scaled 20%) -->
                             <div :class="(activePlayer === index ? 'font-black' : 'font-normal') + (isX01GameMode() ? ' text-[2.2rem] my-0.5' : (isCricketGameMode() ? ' text-[3.5rem] my-0.5' : ' text-[44px] my-1')) + ' text-yellow-400' + (flashingPlayerIndex === index ? ' score-flash' : '')" x-text="isX01GameMode() ? player.score : player.cricketScore"></div>
-                            <!-- 3-Dart Running Average (X01 games only; scaled 20%) -->
+                            <!-- 3-Dart Running Average & Last Turn Score (X01 games only; scaled 20%) -->
                             <template x-if="isX01GameMode()">
-                                <div class="text-xs text-slate-300">Avg: <span class="font-bold" x-text="getPlayerAvg(index)"></span></div>
+                                <div class="text-xs text-slate-300">Avg: <span class="font-bold" x-text="getPlayerAvg(index)"></span> <span class="mx-1 text-slate-500">|</span> Last: <span class="font-bold text-slate-100" x-text="getPlayerLastTurnScore(index)"></span></div>
                             </template>
                         </div>
                     </template>
@@ -492,8 +492,9 @@
 
                             <!-- Message banner (reserved height so UNDO/ENTER stay large) -->
                             <div
-                                class="w-full text-center text-red-500 font-bold text-sm min-h-[1.5rem] flex items-center justify-center mb-2"
-                                x-text="shanghaiMessage || '\u00A0'"
+                                :class="winMessage ? 'text-yellow-400' : 'text-red-500'"
+                                class="w-full text-center font-bold text-sm min-h-[1.5rem] flex items-center justify-center mb-2"
+                                x-text="winMessage || shanghaiMessage || '\u00A0'"
                             ></div>
 
                             <!-- UNDO and ENTER buttons -->
@@ -1193,6 +1194,7 @@
                  *   Round 8 miss → player eliminated (skipped for rounds 9-10)
                  */
                 hitShanghai(type) {
+                    if (this.winMessage !== '') return;
                     const p = this.players[this.activePlayer];
                     if (!p) return;
                     if (p.shanghaiEliminated) {
@@ -1224,13 +1226,8 @@
                     // Each scoring button may be hit more than once per turn (e.g. three Triples).
                     const hits = p.shanghaiTurnHits;
                     if (hits.includes('single') && hits.includes('double') && hits.includes('triple')) {
-                        const winMsg = `🎯 SHANGHAI! ${p.name} wins with a Single, Double & Triple on ${target}! Click New Match to start a new game.`;
-                        this.winMessage = winMsg;
-                        // Show the win message in the message space, then restart the game
-                        setTimeout(() => {
-                            this.startShanghaiNewGame();
-                            this.winMessage = '';
-                        }, 1400);
+                        this.shanghaiMessage = '';
+                        this.winMessage = `🎯 SHANGHAI! ${p.name} wins with a Single, Double & Triple on ${target}! Click New Match to start a new game.`;
                     }
                 },
 
@@ -1853,6 +1850,13 @@ if (this.isGameOver) {
                     let totalPts = p.history.reduce((acc, curr) => acc + curr.pts, 0);
                     let avg = (totalPts / (p.history.length * 3)) * 3;
                     return avg.toFixed(2);
+                },
+
+                /** Returns the most recent completed turn score for an X01 player */
+                getPlayerLastTurnScore(idx) {
+                    const p = this.players[idx];
+                    if (!p || !Array.isArray(p.history) || p.history.length === 0) return '-';
+                    return p.history[p.history.length - 1].pts;
                 },
 
                 /* ------------------------------------------------------------------
