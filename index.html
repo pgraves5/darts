@@ -208,7 +208,7 @@
                             <!-- Player Name (scaled 20%) -->
                             <div class="text-sm font-bold uppercase tracking-wider text-slate-300 truncate" x-text="player.name"></div>
                             <!-- Current Score: Remaining points for X01, Cricket points for Cricket (scaled 20%) -->
-                            <div :class="(activePlayer === index ? 'font-black' : 'font-normal') + (isX01GameMode() ? ' text-[2.2rem] my-0.5' : (isCricketGameMode() ? ' text-[3.5rem] my-0.5' : ' text-[44px] my-1')) + ' text-yellow-400' + (flashingPlayerIndex === index ? ' score-flash' : '')" x-text="isX01GameMode() ? player.score : player.cricketScore"></div>
+                            <div :class="(activePlayer === index ? 'font-black' : 'font-normal') + (isX01GameMode() ? ' text-[2.2rem] my-0.5' : (isCricketGameMode() ? ' text-[3.5rem] my-0.5' : ' text-[44px] my-1')) + (flashingPlayerIndex === index ? ' text-yellow-400 score-flash' : ' text-white')" x-text="isX01GameMode() ? player.score : player.cricketScore"></div>
                             <!-- 3-Dart Running Average & Last Turn Score (X01 games only; scaled 20%) -->
                             <template x-if="isX01GameMode()">
                                 <div class="text-xs text-slate-300">Avg: <span class="font-bold" x-text="getPlayerAvg(index)"></span> <span class="mx-1 text-slate-500">|</span> Last: <span class="font-bold text-slate-100" x-text="getPlayerLastTurnScore(index)"></span></div>
@@ -342,8 +342,8 @@
                                                 <div :class="activePlayer === player.index ? 'bg-slate-700 border-t-4 border-red-500' : 'bg-slate-900/70'" class="min-w-0 rounded-lg border border-slate-700 px-1 py-2 text-center">
                                                     <div class="text-[11px] font-bold uppercase tracking-wide text-slate-400 truncate" x-text="player.name"></div>
                                                     <div
-                                                        class="mt-1 font-black tracking-tight leading-none whitespace-nowrap text-yellow-400"
-                                                        :class="(activePlayer === player.index ? 'font-black ' : 'font-normal ') + (String(player.bowTieScore).length >= 4 ? 'text-xl' : (String(player.bowTieScore).length === 3 ? 'text-2xl' : 'text-3xl')) + (flashingPlayerIndex === player.index ? ' score-flash' : '')"
+                                                        class="mt-1 font-black tracking-tight leading-none whitespace-nowrap"
+                                                        :class="(activePlayer === player.index ? 'font-black ' : 'font-normal ') + (String(player.bowTieScore).length >= 4 ? 'text-xl' : (String(player.bowTieScore).length === 3 ? 'text-2xl' : 'text-3xl')) + (flashingPlayerIndex === player.index ? ' text-yellow-400 score-flash' : ' text-white')"
                                                         x-text="player.bowTieScore"
                                                     ></div>
                                                 </div>
@@ -427,7 +427,7 @@
                                     <div class="text-[11px] font-bold uppercase tracking-wide text-slate-400 truncate" x-text="player.name"></div>
                                     <div
                                         class="mt-1 font-black tracking-tight leading-none whitespace-nowrap"
-                                        :class="(player.shanghaiEliminated ? 'text-2xl text-red-400' : 'text-yellow-400 ' + (String(player.shanghaiScore).length >= 4 ? 'text-xl' : (String(player.shanghaiScore).length === 3 ? 'text-2xl' : 'text-3xl'))) + (!player.shanghaiEliminated && flashingPlayerIndex === idx ? ' score-flash' : '')"
+                                        :class="player.shanghaiEliminated ? 'text-2xl text-red-400' : ((flashingPlayerIndex === idx ? 'text-yellow-400 score-flash ' : 'text-white ') + (String(player.shanghaiScore).length >= 4 ? 'text-xl' : (String(player.shanghaiScore).length === 3 ? 'text-2xl' : 'text-3xl')))"
                                         x-text="player.shanghaiEliminated ? 'OUT' : player.shanghaiScore"
                                     ></div>
                                 </div>
@@ -923,7 +923,8 @@
                 },
 
                 /**
-                 * Triggers a brief flash animation on a player's score before returning to yellow.
+                 * Highlights a player's score in yellow (with a brief flash) when it changes during their turn.
+                 * Stays yellow until clearScoreFlash() is called when ENTER is selected.
                  */
                 triggerScoreFlash(playerIndex) {
                     if (this.flashTimeoutId) {
@@ -933,15 +934,11 @@
                     this.flashingPlayerIndex = null;
                     this.$nextTick(() => {
                         this.flashingPlayerIndex = playerIndex;
-                        this.flashTimeoutId = setTimeout(() => {
-                            this.flashingPlayerIndex = null;
-                            this.flashTimeoutId = null;
-                        }, 900);
                     });
                 },
 
                 /**
-                 * Immediately stops any active score flash so the score returns to solid yellow.
+                 * Immediately clears the score highlight so the player's score returns to white.
                  */
                 clearScoreFlash() {
                     if (this.flashTimeoutId) {
@@ -1264,14 +1261,14 @@
                         if (target === 3) {
                             // Miss target 3: score reset to zero
                             p.shanghaiScore = 0;
-                            this.triggerScoreFlash(this.activePlayer);
+                            this.clearScoreFlash();
                             this.shanghaiMessage = `${p.name} missed target 3 — score reset to 0!`;
                         } else if (target === 5) {
                             // Miss target 5: score halved (round up if odd before halving)
                             const before = p.shanghaiScore || 0;
                             const adjusted = before % 2 === 1 ? before + 1 : before;
                             p.shanghaiScore = Math.floor(adjusted / 2);
-                            this.triggerScoreFlash(this.activePlayer);
+                            this.clearScoreFlash();
                             this.shanghaiMessage = `${p.name} missed target 5 — score halved to ${p.shanghaiScore}!`;
                         } else if (target === 8) {
                             // Miss target 8: player is eliminated from remaining rounds
@@ -1643,11 +1640,7 @@
                         player.bowTieScore = this.resolveBowTieRound(player, round, darts);
                     }
 
-                    if (Number(player.bowTieScore || 0) !== prevScore) {
-                        this.triggerScoreFlash(actingPlayer);
-                    } else {
-                        this.clearScoreFlash();
-                    }
+                    this.clearScoreFlash();
 
                     this.bowTieDarts = [];
                     this.bowTieRoundInput = '';
@@ -1824,11 +1817,7 @@ if (this.isGameOver) {
                     this.lastTurn = { player: actingPlayer, pts: pts };
                     p.history.push({ pts: pts, remaining: p.score - pts });
                     p.score -= pts;
-                    if (pts > 0) {
-                        this.triggerScoreFlash(actingPlayer);
-                    } else {
-                        this.clearScoreFlash();
-                    }
+                    this.clearScoreFlash();
 
                     // Leg Win Condition: Player reaches exactly 0
                     if (p.score === 0) {
