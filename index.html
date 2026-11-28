@@ -206,9 +206,9 @@
                             class="transition-all border-r border-slate-700 last:border-r-0"
                         >
                             <!-- Player Name (scaled 20%) -->
-                            <div class="text-sm font-bold uppercase tracking-wider text-slate-300 truncate" x-text="player.name"></div>
+                            <div class="text-lg font-bold uppercase tracking-wider text-slate-300 truncate" x-text="player.name"></div>
                             <!-- Current Score: Remaining points for X01, Cricket points for Cricket (scaled 20%) -->
-                            <div :class="(activePlayer === index ? 'font-black' : 'font-normal') + (isX01GameMode() ? ' text-[2.2rem] my-0.5' : (isCricketGameMode() ? ' text-[3.5rem] my-0.5' : ' text-[44px] my-1')) + (flashingPlayerIndex === index ? ' text-yellow-400 score-flash' : ' text-white')" x-text="isX01GameMode() ? player.score : player.cricketScore"></div>
+                            <div :class="(activePlayer === index ? 'font-black' : 'font-normal') + (isX01GameMode() ? ' text-6xl my-0.5' : (isCricketGameMode() ? ' text-[3.5rem] my-0.5' : ' text-[44px] my-1')) + (flashingPlayerIndex === index ? ' text-yellow-400 score-flash' : ' text-white')" x-text="isX01GameMode() ? player.score : player.cricketScore"></div>
                             <!-- 3-Dart Running Average & Last Turn Score (X01 games only; scaled 20%) -->
                             <template x-if="isX01GameMode()">
                                 <div class="text-xs text-slate-300">Avg: <span class="font-bold" x-text="getPlayerAvg(index)"></span> <span class="mx-1 text-slate-500">|</span> Last: <span class="font-bold text-slate-100" x-text="getPlayerLastTurnScore(index)"></span></div>
@@ -234,21 +234,21 @@
                      Displays marks for targets: 20, 19, 18, 17, 16, 15, and Bullseye (B).
                      Includes Triple (T), Single (number), and Double (D) hit buttons. -->
                 <template x-if="isCricketGameMode()">
-                    <div class="w-full max-w-[580px] bg-slate-800 rounded-xl overflow-hidden border border-slate-700 text-lg mb-0 shadow">
+                    <div class="w-full max-w-4xl bg-slate-800 rounded-xl overflow-hidden border border-slate-700 text-lg mb-0 shadow">
                         <!-- Column Headers: Player Names & Target Label (scaled 20%) -->
-                        <div class="grid text-center font-bold text-[32px] uppercase tracking-wide bg-slate-700 p-3" :style="'grid-template-columns: repeat(' + players.length + ', minmax(0, 1fr)) 236px'">
+                        <div class="grid text-center font-bold text-7xl uppercase tracking-wide bg-slate-700 p-3" :style="'grid-template-columns: repeat(' + players.length + ', minmax(0, 1fr)) auto'">
                             <template x-for="(player, index) in players" :key="index">
                                 <div class="px-1 flex items-center justify-center"><span x-text="player.name"></span></div>
                             </template>
-                            <div class="text-center text-[38px] leading-none flex items-center justify-center">Target</div>
+                            <div class="text-center text-8xl leading-none flex items-center justify-center px-2">Target</div>
                         </div>
 
                         <!-- Target Rows: Mark indicators and interactive hit buttons (scaled 20%) -->
                         <template x-for="target in [20, 19, 18, 17, 16, 15, 'B']">
-                            <div class="grid px-2.5 py-0.5 text-center border-t border-slate-700 items-center font-mono font-bold gap-1" :style="'grid-template-columns: repeat(' + players.length + ', minmax(0, 1fr)) 236px'">
+                            <div class="grid px-2.5 py-0.5 text-center border-t border-slate-700 items-center font-mono font-bold gap-1" :style="'grid-template-columns: repeat(' + players.length + ', minmax(0, 1fr)) auto'">
                                 <!-- Player Marks Column: Displays -, /, X, or ⨷ (closed; yellow only for current-turn hits, white for prior turns) -->
                                 <template x-for="(player, index) in players" :key="index">
-                                    <div class="min-h-[58px] flex items-center justify-center text-[53px] leading-none" :class="player.marks[target] > 0 ? (index === activePlayer && cricketTurnMarks[target] ? 'text-yellow-400' : 'text-white') : 'text-slate-400'">
+                                    <div class="min-h-[58px] flex items-center justify-center text-9xl leading-none" :class="player.marks[target] > 0 ? (index === activePlayer && cricketTurnMarks[target] ? 'text-yellow-400' : 'text-white') : 'text-slate-400'">
                                         <span x-text="renderMarks(player.marks[target])"></span>
                                     </div>
                                 </template>
@@ -303,14 +303,14 @@
                      BowTie consists of 12 rounds: Free, 20, 19, Treble, 18, 17, Double, 16, 15, 3 Color, BT, Bull.
                      Scores halve if a player fails to score in a round. -->
                 <template x-if="isBowTieGameMode()">
-                    <div class="w-full max-w-[614px] bg-slate-800 rounded-xl border border-slate-700 p-2.5 sm:p-3.5 text-base mb-2 mx-auto shadow">
+                    <div class="w-full max-w-4xl bg-slate-800 rounded-xl border border-slate-700 p-2.5 sm:p-3.5 text-base mb-2 mx-auto shadow">
                         <!-- Active Player and Current Target Round indicator (scaled 20%) -->
-                        <div class="mt-1 text-lg leading-6 text-slate-300 flex items-center gap-3.5 whitespace-nowrap">
+                        <div class="mt-1 text-6xl leading-tight text-slate-300 flex items-center gap-3.5 flex-wrap">
                             <span>Active player: <span class="text-red-500 font-black" x-text="players[activePlayer].name"></span></span>
                             <span>Target Round: <span class="text-red-500 font-black" x-text="getCurrentBowTieRound().label"></span></span>
                         </div>
 
-                        <div class="mt-2.5 grid grid-cols-[140px_minmax(0,1fr)] sm:grid-cols-[154px_minmax(0,1fr)] gap-2.5 items-start">
+                        <div class="mt-2.5 grid grid-cols-[auto_minmax(0,1fr)] gap-2.5 items-start">
                             <!-- Left Column: 12 BowTie Targets list with active round highlight (scaled 20%) -->
                             <div class="space-y-1.5 rounded-lg border border-slate-700 bg-slate-900/50 p-2">
                                 <div class="px-1 text-[11px] uppercase tracking-[0.18em] text-slate-400">TARGETS</div>
@@ -323,7 +323,7 @@
                                         :disabled="['Free', 'Treble (T)', 'Double (D)', '3 Color', 'BowTie (BT)'].includes(target)"
                                         @click="if (!['Free', 'Treble (T)', 'Double (D)', '3 Color', 'BowTie (BT)'].includes(target)) addBowTieRoundTarget(target)"
                                         :class="[
-                                            'w-full whitespace-nowrap rounded-md border border-slate-600 px-1.5 py-2 text-[15.6px] sm:text-[16.9px] font-black text-slate-100 hover:brightness-110 focus:outline-none active:scale-[0.98] bg-slate-700/90',
+                                            'w-full whitespace-nowrap rounded-md border border-slate-600 px-2.5 py-2 text-3xl sm:text-4xl font-black text-slate-100 hover:brightness-110 focus:outline-none active:scale-[0.98] bg-slate-700/90',
                                             isCurrentBowTieTarget(target) ? 'bg-red-300 text-red-950 border-red-200 shadow-[0_0_0_2px_rgba(254,202,202,0.9),0_0_16px_rgba(239,68,68,0.7)] ring-2 ring-red-200/90' : '',
                                             ['Free', 'Treble (T)', 'Double (D)', '3 Color', 'BowTie (BT)'].includes(target) ? 'opacity-50 cursor-not-allowed' : ''
                                         ]"
@@ -343,7 +343,7 @@
                                                     <div class="text-[11px] font-bold uppercase tracking-wide text-slate-400 truncate" x-text="player.name"></div>
                                                     <div
                                                         class="mt-1 font-black tracking-tight leading-none whitespace-nowrap"
-                                                        :class="(activePlayer === player.index ? 'font-black ' : 'font-normal ') + (String(player.bowTieScore).length >= 4 ? 'text-xl' : (String(player.bowTieScore).length === 3 ? 'text-2xl' : 'text-3xl')) + (flashingPlayerIndex === player.index ? ' text-yellow-400 score-flash' : ' text-white')"
+                                                        :class="(activePlayer === player.index ? 'font-black ' : 'font-normal ') + (String(player.bowTieScore).length >= 4 ? 'text-5xl' : (String(player.bowTieScore).length === 3 ? 'text-6xl' : 'text-7xl')) + (flashingPlayerIndex === player.index ? ' text-yellow-400 score-flash' : ' text-white')"
                                                         x-text="player.bowTieScore"
                                                     ></div>
                                                 </div>
@@ -410,9 +410,9 @@
                      Penalties: Miss target 3 → score to 0; Miss target 5 → score halved;
                      Miss target 8 → player eliminated from remaining rounds. -->
                 <template x-if="isShanghaiGameMode()">
-                    <div class="w-full max-w-[614px] bg-slate-800 rounded-xl border border-slate-700 p-2.5 sm:p-3.5 text-base mb-2 mx-auto shadow">
+                    <div class="w-full max-w-4xl bg-slate-800 rounded-xl border border-slate-700 p-2.5 sm:p-3.5 text-base mb-2 mx-auto shadow">
                         <!-- Active player indicator and current round -->
-                        <div class="mt-1 text-lg leading-6 text-slate-300 flex items-center gap-3.5 whitespace-nowrap flex-wrap">
+                        <div class="mt-1 text-6xl leading-tight text-slate-300 flex items-center gap-3.5 flex-wrap">
                             <span>Player: <span class="text-red-500 font-black" x-text="players[activePlayer].name"></span></span>
                             <span>Round <span class="text-yellow-400 font-black" x-text="shanghaiRoundIndex + 1"></span> / 10 — Target: <span class="text-yellow-400 font-black" x-text="shanghaiRoundIndex + 1"></span></span>
                         </div>
@@ -427,7 +427,7 @@
                                     <div class="text-[11px] font-bold uppercase tracking-wide text-slate-400 truncate" x-text="player.name"></div>
                                     <div
                                         class="mt-1 font-black tracking-tight leading-none whitespace-nowrap"
-                                        :class="player.shanghaiEliminated ? 'text-2xl text-red-400' : ((flashingPlayerIndex === idx ? 'text-yellow-400 score-flash ' : 'text-white ') + (String(player.shanghaiScore).length >= 4 ? 'text-xl' : (String(player.shanghaiScore).length === 3 ? 'text-2xl' : 'text-3xl')))"
+                                        :class="player.shanghaiEliminated ? 'text-6xl text-red-400' : ((flashingPlayerIndex === idx ? 'text-yellow-400 score-flash ' : 'text-white ') + (String(player.shanghaiScore).length >= 4 ? 'text-5xl' : (String(player.shanghaiScore).length === 3 ? 'text-6xl' : 'text-7xl')))"
                                         x-text="player.shanghaiEliminated ? 'OUT' : player.shanghaiScore"
                                     ></div>
                                 </div>
@@ -445,37 +445,37 @@
                                 <button
                                     @click="hitShanghai('single')"
                                     :disabled="isGameOver || players[activePlayer].shanghaiEliminated || (players[activePlayer].shanghaiTurnDarts || 0) >= 3"
-                                    class="keypad-btn font-bold py-3 rounded-xl text-[23.4px] transition-colors disabled:opacity-40 bg-slate-300 hover:bg-slate-400 text-slate-900 border border-slate-400"
+                                    class="keypad-btn font-bold py-3 rounded-xl text-6xl transition-colors disabled:opacity-40 bg-slate-300 hover:bg-slate-400 text-slate-900 border border-slate-400"
                                 >
-                                    <div class="text-[15.6px] text-slate-300">Single</div>
-                                    <div class="font-black text-[23.4px]" x-text="shanghaiRoundIndex + 1"></div>
+                                    <div class="text-3xl text-slate-300">Single</div>
+                                    <div class="font-black text-6xl" x-text="shanghaiRoundIndex + 1"></div>
                                 </button>
                                 <!-- Double button -->
                                 <button
                                     @click="hitShanghai('double')"
                                     :disabled="isGameOver || players[activePlayer].shanghaiEliminated || (players[activePlayer].shanghaiTurnDarts || 0) >= 3"
-                                    class="keypad-btn font-bold py-3 rounded-xl text-[23.4px] transition-colors disabled:opacity-40 bg-slate-300 hover:bg-slate-400 text-slate-900 border border-slate-400"
+                                    class="keypad-btn font-bold py-3 rounded-xl text-6xl transition-colors disabled:opacity-40 bg-slate-300 hover:bg-slate-400 text-slate-900 border border-slate-400"
                                 >
-                                    <div class="text-[15.6px] text-slate-300">Double</div>
-                                    <div class="font-black text-[23.4px]" x-text="'D' + (shanghaiRoundIndex + 1)"></div>
+                                    <div class="text-3xl text-slate-300">Double</div>
+                                    <div class="font-black text-6xl" x-text="'D' + (shanghaiRoundIndex + 1)"></div>
                                 </button>
                                 <!-- Triple button -->
                                 <button
                                     @click="hitShanghai('triple')"
                                     :disabled="isGameOver || players[activePlayer].shanghaiEliminated || (players[activePlayer].shanghaiTurnDarts || 0) >= 3"
-                                    class="keypad-btn font-bold py-3 rounded-xl text-[23.4px] transition-colors disabled:opacity-40 bg-slate-300 hover:bg-slate-400 text-slate-900 border border-slate-400"
+                                    class="keypad-btn font-bold py-3 rounded-xl text-6xl transition-colors disabled:opacity-40 bg-slate-300 hover:bg-slate-400 text-slate-900 border border-slate-400"
                                 >
-                                    <div class="text-[15.6px] text-slate-300">Triple</div>
-                                    <div class="font-black text-[23.4px]" x-text="'T' + (shanghaiRoundIndex + 1)"></div>
+                                    <div class="text-3xl text-slate-300">Triple</div>
+                                    <div class="font-black text-6xl" x-text="'T' + (shanghaiRoundIndex + 1)"></div>
                                 </button>
                                 <!-- Miss button -->
                                 <button
                                     @click="hitShanghai('miss')"
                                     :disabled="isGameOver || players[activePlayer].shanghaiEliminated || (players[activePlayer].shanghaiTurnDarts || 0) >= 3"
-                                    class="keypad-btn bg-yellow-700/80 hover:bg-yellow-600 font-bold py-3 rounded-lg text-[20.8px] transition-colors disabled:opacity-40"
+                                    class="keypad-btn bg-yellow-700/80 hover:bg-yellow-600 font-bold py-3 rounded-lg text-5xl transition-colors disabled:opacity-40"
                                 >
-                                    <div class="text-[15.6px] text-yellow-200">Miss</div>
-                                    <div class="font-black text-[23.4px] text-yellow-100">0</div>
+                                    <div class="text-3xl text-yellow-200">Miss</div>
+                                    <div class="font-black text-6xl text-yellow-100">0</div>
                                 </button>
                             </div>
 
@@ -509,19 +509,19 @@
                 <!-- CURRENT TURN INPUT DISPLAY (X01 games only; scaled 20%)
                      Displays current entered score expression, turn total, and new remaining score preview -->
                 <template x-if="!isCricketGameMode() && !isBowTieGameMode() && !isShanghaiGameMode()">
-                    <div class="bg-slate-800/60 border border-slate-700 rounded-xl p-2 sm:p-2.5 w-full max-w-md text-center shadow-inner">
-                        <div class="text-sm text-slate-400 uppercase mb-0.5">Current Turn Score</div>
+                    <div class="bg-slate-800/60 border border-slate-700 rounded-xl p-2 sm:p-2.5 w-full max-w-4xl text-center shadow-inner">
+                        <div class="text-4xl text-slate-400 uppercase mb-0.5">Current Turn Score</div>
                         <!-- Current unsubmitted turn score expression (scaled 20%) -->
-                        <div class="text-3xl sm:text-4xl font-mono font-black text-red-500 tracking-widest h-12 sm:h-14" x-text="currentTurnScore || '0'"></div>
+                        <div class="text-9xl font-mono font-black text-red-500 tracking-widest leading-none my-1" x-text="currentTurnScore || '0'"></div>
                         <!-- Turn Total and New Score Preview Boxes (scaled 20%) -->
                         <div class="mt-1.5 grid grid-cols-2 gap-1.5 text-left">
                             <div class="bg-slate-900/60 rounded-lg p-2.5">
-                                <div class="text-xs uppercase tracking-wider text-slate-400">Turn Total</div>
-                                <div class="text-lg font-mono font-bold text-red-400" x-text="turnTotalPreview()"></div>
+                                <div class="text-3xl uppercase tracking-wider text-slate-400">Turn Total</div>
+                                <div class="text-6xl font-mono font-bold text-red-400" x-text="turnTotalPreview()"></div>
                             </div>
                             <div class="bg-slate-900/60 rounded-lg p-2.5">
-                                <div class="text-xs uppercase tracking-wider text-slate-400">New Score</div>
-                                <div class="text-lg font-mono font-bold text-green-400" x-text="newScorePreview()"></div>
+                                <div class="text-3xl uppercase tracking-wider text-slate-400">New Score</div>
+                                <div class="text-6xl font-mono font-bold text-green-400" x-text="newScorePreview()"></div>
                             </div>
                         </div>
                     </div>
@@ -531,33 +531,33 @@
                      Provides touch-friendly numeric entry (1-9, 0, +, *), Del, UNDO, MISS, BUST, ENTER,
                      a dedicated status/error display line, and quick-score preset buttons. -->
                 <template x-if="isX01GameMode() && !isShanghaiGameMode()">
-                    <div class="compact-keypad w-full max-w-[538px] mt-1 bg-slate-800/60 border-t border-slate-700 px-1.5 py-1.5 rounded-lg shrink-0">
-                        <div class="max-w-[538px] mx-auto">
+                    <div class="compact-keypad w-full max-w-4xl mt-1 bg-slate-800/60 border-t border-slate-700 px-1.5 py-1.5 rounded-lg shrink-0">
+                        <div class="w-full mx-auto">
                             <!-- Keypad Grid (4 columns; scaled 20%) -->
                             <div class="grid grid-cols-4 gap-2 mb-2">
-                                <button @click="pressKey('1')" :disabled="isGameOver" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-[23.4px] font-bold py-2.5 rounded-lg disabled:opacity-40">1</button>
-                                <button @click="pressKey('2')" :disabled="isGameOver" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-[23.4px] font-bold py-2.5 rounded-lg disabled:opacity-40">2</button>
-                                <button @click="pressKey('3')" :disabled="isGameOver" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-[23.4px] font-bold py-2.5 rounded-lg disabled:opacity-40">3</button>
-                                <button @click="pressKey('back')" class="keypad-btn bg-red-900/60 hover:bg-red-800 text-[15.6px] font-bold py-2.5 rounded-lg text-red-300">Del</button>
+                                <button @click="pressKey('1')" :disabled="isGameOver" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-8xl font-bold py-2.5 rounded-lg disabled:opacity-40">1</button>
+                                <button @click="pressKey('2')" :disabled="isGameOver" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-8xl font-bold py-2.5 rounded-lg disabled:opacity-40">2</button>
+                                <button @click="pressKey('3')" :disabled="isGameOver" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-8xl font-bold py-2.5 rounded-lg disabled:opacity-40">3</button>
+                                <button @click="pressKey('back')" class="keypad-btn bg-red-900/60 hover:bg-red-800 text-5xl font-bold py-2.5 rounded-lg text-red-300">Del</button>
 
-                                <button @click="pressKey('4')" :disabled="isGameOver" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-[23.4px] font-bold py-2.5 rounded-lg disabled:opacity-40">4</button>
-                                <button @click="pressKey('5')" :disabled="isGameOver" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-[23.4px] font-bold py-2.5 rounded-lg disabled:opacity-40">5</button>
-                                <button @click="pressKey('6')" :disabled="isGameOver" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-[23.4px] font-bold py-2.5 rounded-lg disabled:opacity-40">6</button>
-                                <button @click="undo()" class="keypad-btn bg-yellow-600 hover:bg-yellow-500 text-[15.6px] font-bold py-2.5 rounded-lg text-yellow-50">UNDO</button>
+                                <button @click="pressKey('4')" :disabled="isGameOver" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-8xl font-bold py-2.5 rounded-lg disabled:opacity-40">4</button>
+                                <button @click="pressKey('5')" :disabled="isGameOver" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-8xl font-bold py-2.5 rounded-lg disabled:opacity-40">5</button>
+                                <button @click="pressKey('6')" :disabled="isGameOver" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-8xl font-bold py-2.5 rounded-lg disabled:opacity-40">6</button>
+                                <button @click="undo()" class="keypad-btn bg-yellow-600 hover:bg-yellow-500 text-5xl font-bold py-2.5 rounded-lg text-yellow-50">UNDO</button>
 
-                                <button @click="pressKey('7')" :disabled="isGameOver" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-[23.4px] font-bold py-2.5 rounded-lg disabled:opacity-40">7</button>
-                                <button @click="pressKey('8')" :disabled="isGameOver" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-[23.4px] font-bold py-2.5 rounded-lg disabled:opacity-40">8</button>
-                                <button @click="pressKey('9')" :disabled="isGameOver" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-[23.4px] font-bold py-2.5 rounded-lg disabled:opacity-40">9</button>
+                                <button @click="pressKey('7')" :disabled="isGameOver" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-8xl font-bold py-2.5 rounded-lg disabled:opacity-40">7</button>
+                                <button @click="pressKey('8')" :disabled="isGameOver" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-8xl font-bold py-2.5 rounded-lg disabled:opacity-40">8</button>
+                                <button @click="pressKey('9')" :disabled="isGameOver" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-8xl font-bold py-2.5 rounded-lg disabled:opacity-40">9</button>
                                 <div class="keypad-btn"></div>
 
-                                <button @click="pressKey('+')" :disabled="isGameOver" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-[23.4px] font-bold py-2.5 rounded-lg text-yellow-300 disabled:opacity-40">+</button>
-                                <button @click="pressKey('0')" :disabled="isGameOver" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-[23.4px] font-bold py-2.5 rounded-lg disabled:opacity-40">0</button>
-                                <button @click="pressKey('*')" :disabled="isGameOver" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-[23.4px] font-bold py-2.5 rounded-lg text-yellow-300 disabled:opacity-40">×</button>
+                                <button @click="pressKey('+')" :disabled="isGameOver" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-8xl font-bold py-2.5 rounded-lg text-yellow-300 disabled:opacity-40">+</button>
+                                <button @click="pressKey('0')" :disabled="isGameOver" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-8xl font-bold py-2.5 rounded-lg disabled:opacity-40">0</button>
+                                <button @click="pressKey('*')" :disabled="isGameOver" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-8xl font-bold py-2.5 rounded-lg text-yellow-300 disabled:opacity-40">×</button>
                                 <div class="keypad-btn"></div>
 
-                                <button @click="setScore(0)" :disabled="isGameOver" class="keypad-btn bg-yellow-600/80 hover:bg-yellow-500 text-[15.6px] font-bold py-2.5 rounded-lg text-yellow-50 disabled:opacity-40">MISS</button>
-                                <button @click="bustTurn()" :disabled="isGameOver" class="keypad-btn bg-red-700/80 hover:bg-red-600 text-[15.6px] font-bold py-2.5 rounded-lg text-red-50 disabled:opacity-40">BUST</button>
-                                <button @click="submitX01()" :disabled="winMessage !== ''" class="keypad-btn bg-green-600 hover:bg-green-500 font-bold py-2.5 rounded-lg text-[15.6px] shadow transition-colors">ENTER</button>
+                                <button @click="setScore(0)" :disabled="isGameOver" class="keypad-btn bg-yellow-600/80 hover:bg-yellow-500 text-5xl font-bold py-2.5 rounded-lg text-yellow-50 disabled:opacity-40">MISS</button>
+                                <button @click="bustTurn()" :disabled="isGameOver" class="keypad-btn bg-red-700/80 hover:bg-red-600 text-5xl font-bold py-2.5 rounded-lg text-red-50 disabled:opacity-40">BUST</button>
+                                <button @click="submitX01()" :disabled="winMessage !== ''" class="keypad-btn bg-green-600 hover:bg-green-500 font-bold py-2.5 rounded-lg text-5xl shadow transition-colors">ENTER</button>
                                 <div class="keypad-btn"></div>
 
                                 <!-- X01 Message Line - displays messages in row after ENTER, persists until another button is clicked -->
@@ -568,12 +568,12 @@
 
                                 <!-- Quick Common Score Preset Buttons (26, 41, 45, 60, 81, 100; scaled 20%) -->
                                 <div class="col-span-4 grid grid-cols-6 gap-1.5">
-                                    <button @click="setScore(26)" class="keypad-btn bg-amber-500/20 hover:bg-amber-500/30 text-[13px] font-bold py-2 rounded-lg text-amber-200 border border-amber-400/20">26</button>
-                                    <button @click="setScore(41)" class="keypad-btn bg-amber-500/20 hover:bg-amber-500/30 text-[13px] font-bold py-2 rounded-lg text-amber-200 border border-amber-400/20">41</button>
-                                    <button @click="setScore(45)" class="keypad-btn bg-amber-500/20 hover:bg-amber-500/30 text-[13px] font-bold py-2 rounded-lg text-amber-200 border border-amber-400/20">45</button>
-                                    <button @click="setScore(60)" class="keypad-btn bg-sky-500/20 hover:bg-sky-500/30 text-[13px] font-bold py-2 rounded-lg text-sky-200 border border-sky-400/20">60</button>
-                                    <button @click="setScore(81)" class="keypad-btn bg-sky-500/20 hover:bg-sky-500/30 text-[13px] font-bold py-2 rounded-lg text-sky-200 border border-sky-400/20">81</button>
-                                    <button @click="setScore(100)" class="keypad-btn bg-sky-500/20 hover:bg-sky-500/30 text-[13px] font-bold py-2 rounded-lg text-sky-200 border border-sky-400/20">100</button>
+                                    <button @click="setScore(26)" class="keypad-btn bg-amber-500/20 hover:bg-amber-500/30 text-4xl font-bold py-2 rounded-lg text-amber-200 border border-amber-400/20">26</button>
+                                    <button @click="setScore(41)" class="keypad-btn bg-amber-500/20 hover:bg-amber-500/30 text-4xl font-bold py-2 rounded-lg text-amber-200 border border-amber-400/20">41</button>
+                                    <button @click="setScore(45)" class="keypad-btn bg-amber-500/20 hover:bg-amber-500/30 text-4xl font-bold py-2 rounded-lg text-amber-200 border border-amber-400/20">45</button>
+                                    <button @click="setScore(60)" class="keypad-btn bg-sky-500/20 hover:bg-sky-500/30 text-4xl font-bold py-2 rounded-lg text-sky-200 border border-sky-400/20">60</button>
+                                    <button @click="setScore(81)" class="keypad-btn bg-sky-500/20 hover:bg-sky-500/30 text-4xl font-bold py-2 rounded-lg text-sky-200 border border-sky-400/20">81</button>
+                                    <button @click="setScore(100)" class="keypad-btn bg-sky-500/20 hover:bg-sky-500/30 text-4xl font-bold py-2 rounded-lg text-sky-200 border border-sky-400/20">100</button>
                                 </div>
                             </div>
                         </div>
