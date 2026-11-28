@@ -129,11 +129,11 @@
              and customize Player Names before starting the match.
              ==================================================================== -->
         <div x-show="screen === 'menu'" class="mobile-menu absolute inset-0 bg-slate-900 z-20 p-6 flex flex-col justify-center max-w-md mx-auto w-full overflow-y-auto">
-            <h2 class="text-2xl font-black mb-6 text-center text-red-500 tracking-wider">DART GAMES</h2>
+            <h2 class="text-[33.6px] font-black mb-6 text-center text-red-500 tracking-wider">DART GAMES</h2>
             
             <!-- Game Mode Selector: X01 (101-601), Standard Cricket, 3-Way Cricket, BowTie, Shanghai -->
-            <label class="text-sm text-slate-400 mb-1">Game Mode</label>
-            <select x-model="gameMode" @change="handleGameModeChange()" class="bg-slate-800 border border-slate-700 rounded p-3 mb-4 text-white font-bold focus:border-red-500 outline-none">
+            <label class="text-[19.6px] text-slate-400 mb-1">Game Mode</label>
+            <select x-model="gameMode" @change="handleGameModeChange()" class="bg-slate-800 border border-slate-700 rounded p-3 mb-4 text-[25.2px] text-white font-bold focus:border-red-500 outline-none">
                 <option value="601">601</option>
                 <option value="501">501</option>
                 <option value="401">401</option>
@@ -149,8 +149,8 @@
             <!-- Starting Mode Selector (Straight-in vs Double-in) for X01 game modes -->
             <template x-if="isX01GameMode()">
                 <div>
-                    <label class="text-sm text-slate-400 mb-1">Starting Mode</label>
-                    <select x-model="startingMode" class="bg-slate-800 border border-slate-700 rounded p-3 mb-4 text-white font-bold w-full focus:border-red-500 outline-none">
+                    <label class="text-[19.6px] text-slate-400 mb-1">Starting Mode</label>
+                    <select x-model="startingMode" class="bg-slate-800 border border-slate-700 rounded p-3 mb-4 text-[25.2px] text-white font-bold w-full focus:border-red-500 outline-none">
                         <option value="Straight-in">Straight-in</option>
                         <option value="Double-in">Double-in</option>
                     </select>
@@ -160,8 +160,8 @@
             <!-- Player Count Selector for games supporting variable counts (X01: 1-4, BowTie: 1-15, Shanghai: 1-15) -->
             <template x-if="isX01GameMode() || isBowTieGameMode() || isShanghaiGameMode()">
                 <div>
-                    <label class="text-sm text-slate-400 mb-1">Players</label>
-                    <select x-model="playerCount" @change="setupPlayerNames(false)" class="bg-slate-800 border border-slate-700 rounded p-3 mb-4 text-white font-bold w-full focus:border-red-500 outline-none">
+                    <label class="text-[19.6px] text-slate-400 mb-1">Players</label>
+                    <select x-model="playerCount" @change="setupPlayerNames(false)" class="bg-slate-800 border border-slate-700 rounded p-3 mb-4 text-[25.2px] text-white font-bold w-full focus:border-red-500 outline-none">
                         <template x-for="n in getPlayerCountOptions()" :key="n">
                             <option :value="n" x-text="n + ' Player' + (n === 1 ? '' : 's')"></option>
                         </template>
@@ -175,20 +175,20 @@
             <div :class="getPlayerNameSetupGridClasses()" class="grid gap-3 mb-4">
                 <template x-for="(slot, index) in getPlayerSlots()" :key="gameMode + '-' + index">
                     <div>
-                        <label class="text-xs text-slate-400 mb-1 block" x-text="'Player ' + (index + 1) + ' Name'">Player Name</label>
+                        <label class="text-[16.8px] text-slate-400 mb-1 block" x-text="'Player ' + (index + 1) + ' Name'">Player Name</label>
                         <input
                             type="text"
                             :maxlength="getPlayerNameMaxLength()"
                             :value="players[index]?.name || ''"
                             @input="setPlayerName(index, $event.target.value, $event)"
-                            class="bg-slate-800 border border-slate-700 rounded p-3 text-white font-bold w-full uppercase focus:border-red-500 outline-none"
+                            class="bg-slate-800 border border-slate-700 rounded p-3 text-[25.2px] text-white font-bold w-full uppercase focus:border-red-500 outline-none"
                         >
                     </div>
                 </template>
             </div>
 
             <!-- Start Match Action: Initializes players and switches view to live scoring -->
-            <button @click="startMatch()" class="w-full bg-red-600 hover:bg-red-500 font-black py-4 rounded-xl text-xl shadow-lg tracking-wide transition-colors">START MATCH</button>
+            <button @click="startMatch()" class="w-full bg-red-600 hover:bg-red-500 font-black py-4 rounded-xl text-[28px] shadow-lg tracking-wide transition-colors">START MATCH</button>
         </div>
 
         <!-- ====================================================================
@@ -323,7 +323,7 @@
                                         :disabled="['Free', 'Treble (T)', 'Double (D)', '3 Color', 'BowTie (BT)'].includes(target)"
                                         @click="if (!['Free', 'Treble (T)', 'Double (D)', '3 Color', 'BowTie (BT)'].includes(target)) addBowTieRoundTarget(target)"
                                         :class="[
-                                            'w-full whitespace-nowrap rounded-md border border-slate-600 px-1.5 py-2 text-xs sm:text-[13px] font-black text-slate-100 hover:brightness-110 focus:outline-none active:scale-[0.98] bg-slate-700/90',
+                                            'w-full whitespace-nowrap rounded-md border border-slate-600 px-1.5 py-2 text-[15.6px] sm:text-[16.9px] font-black text-slate-100 hover:brightness-110 focus:outline-none active:scale-[0.98] bg-slate-700/90',
                                             isCurrentBowTieTarget(target) ? 'bg-red-300 text-red-950 border-red-200 shadow-[0_0_0_2px_rgba(254,202,202,0.9),0_0_16px_rgba(239,68,68,0.7)] ring-2 ring-red-200/90' : '',
                                             ['Free', 'Treble (T)', 'Double (D)', '3 Color', 'BowTie (BT)'].includes(target) ? 'opacity-50 cursor-not-allowed' : ''
                                         ]"
@@ -356,24 +356,24 @@
                                      Col 1-3: Numbers 0-9 and operators (+, *)
                                      Col 4: Row 1 = Del, Row 2 = CLEAR, Row 3 = UNDO, Row 4 = Spacer -->
                                 <div class="grid grid-cols-4 gap-2 my-2">
-                                    <button @click="pressKey('1')" :disabled="isGameOver" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-base font-bold py-2 rounded-lg disabled:opacity-40">1</button>
-                                    <button @click="pressKey('2')" :disabled="isGameOver" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-base font-bold py-2 rounded-lg disabled:opacity-40">2</button>
-                                    <button @click="pressKey('3')" :disabled="isGameOver" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-base font-bold py-2 rounded-lg disabled:opacity-40">3</button>
-                                    <button @click="pressKey('back')" :disabled="isGameOver" class="keypad-btn bg-red-900/60 hover:bg-red-800 text-xs font-bold py-2 rounded-lg text-red-300 disabled:opacity-40">Del</button>
+                                    <button @click="pressKey('1')" :disabled="isGameOver" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-[20.8px] font-bold py-2 rounded-lg disabled:opacity-40">1</button>
+                                    <button @click="pressKey('2')" :disabled="isGameOver" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-[20.8px] font-bold py-2 rounded-lg disabled:opacity-40">2</button>
+                                    <button @click="pressKey('3')" :disabled="isGameOver" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-[20.8px] font-bold py-2 rounded-lg disabled:opacity-40">3</button>
+                                    <button @click="pressKey('back')" :disabled="isGameOver" class="keypad-btn bg-red-900/60 hover:bg-red-800 text-[15.6px] font-bold py-2 rounded-lg text-red-300 disabled:opacity-40">Del</button>
 
-                                    <button @click="pressKey('4')" :disabled="isGameOver" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-base font-bold py-2 rounded-lg disabled:opacity-40">4</button>
-                                    <button @click="pressKey('5')" :disabled="isGameOver" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-base font-bold py-2 rounded-lg disabled:opacity-40">5</button>
-                                    <button @click="pressKey('6')" :disabled="isGameOver" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-base font-bold py-2 rounded-lg disabled:opacity-40">6</button>
-                                    <button @click="clearBowTieRoundInput()" class="keypad-btn bg-slate-600 hover:bg-slate-500 text-xs font-bold py-2 rounded-lg text-slate-100">CLEAR</button>
+                                    <button @click="pressKey('4')" :disabled="isGameOver" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-[20.8px] font-bold py-2 rounded-lg disabled:opacity-40">4</button>
+                                    <button @click="pressKey('5')" :disabled="isGameOver" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-[20.8px] font-bold py-2 rounded-lg disabled:opacity-40">5</button>
+                                    <button @click="pressKey('6')" :disabled="isGameOver" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-[20.8px] font-bold py-2 rounded-lg disabled:opacity-40">6</button>
+                                    <button @click="clearBowTieRoundInput()" class="keypad-btn bg-slate-600 hover:bg-slate-500 text-[15.6px] font-bold py-2 rounded-lg text-slate-100">CLEAR</button>
 
-                                    <button @click="pressKey('7')" :disabled="isGameOver" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-base font-bold py-2 rounded-lg disabled:opacity-40">7</button>
-                                    <button @click="pressKey('8')" :disabled="isGameOver" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-base font-bold py-2 rounded-lg disabled:opacity-40">8</button>
-                                    <button @click="pressKey('9')" :disabled="isGameOver" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-base font-bold py-2 rounded-lg disabled:opacity-40">9</button>
-                                    <button @click="undo()" class="keypad-btn bg-yellow-600 hover:bg-yellow-500 text-xs font-bold py-2 rounded-lg text-yellow-50">UNDO</button>
+                                    <button @click="pressKey('7')" :disabled="isGameOver" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-[20.8px] font-bold py-2 rounded-lg disabled:opacity-40">7</button>
+                                    <button @click="pressKey('8')" :disabled="isGameOver" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-[20.8px] font-bold py-2 rounded-lg disabled:opacity-40">8</button>
+                                    <button @click="pressKey('9')" :disabled="isGameOver" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-[20.8px] font-bold py-2 rounded-lg disabled:opacity-40">9</button>
+                                    <button @click="undo()" class="keypad-btn bg-yellow-600 hover:bg-yellow-500 text-[15.6px] font-bold py-2 rounded-lg text-yellow-50">UNDO</button>
 
-                                    <button @click="pressKey('+')" :disabled="isGameOver" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-base font-bold py-2 rounded-lg text-yellow-300 disabled:opacity-40">+</button>
-                                    <button @click="pressKey('0')" :disabled="isGameOver" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-base font-bold py-2 rounded-lg disabled:opacity-40">0</button>
-                                    <button @click="pressKey('*')" :disabled="isGameOver" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-base font-bold py-2 rounded-lg text-yellow-300 disabled:opacity-40">×</button>
+                                    <button @click="pressKey('+')" :disabled="isGameOver" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-[20.8px] font-bold py-2 rounded-lg text-yellow-300 disabled:opacity-40">+</button>
+                                    <button @click="pressKey('0')" :disabled="isGameOver" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-[20.8px] font-bold py-2 rounded-lg disabled:opacity-40">0</button>
+                                    <button @click="pressKey('*')" :disabled="isGameOver" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-[20.8px] font-bold py-2 rounded-lg text-yellow-300 disabled:opacity-40">×</button>
                                     <div class="keypad-btn"></div>
                                 </div>
 
@@ -396,7 +396,7 @@
                                 ></div>
                                 <!-- BowTie Submit Button (scaled 20%) -->
                                 <div class="mt-1">
-                                    <button @click="submitBowTieTurn()" :disabled="isGameOver || winMessage !== ''" class="w-full bg-green-600 hover:bg-green-500 font-bold py-2.5 rounded-lg text-base tracking-wide shadow transition-colors disabled:opacity-40">ENTER</button>
+                                    <button @click="submitBowTieTurn()" :disabled="isGameOver || winMessage !== ''" class="w-full bg-green-600 hover:bg-green-500 font-bold py-2.5 rounded-lg text-[20.8px] tracking-wide shadow transition-colors disabled:opacity-40">ENTER</button>
                                 </div>
                             </div>
                         </div>
@@ -445,37 +445,37 @@
                                 <button
                                     @click="hitShanghai('single')"
                                     :disabled="isGameOver || players[activePlayer].shanghaiEliminated || (players[activePlayer].shanghaiTurnDarts || 0) >= 3"
-                                    class="keypad-btn font-bold py-3 rounded-xl text-lg transition-colors disabled:opacity-40 bg-slate-300 hover:bg-slate-400 text-slate-900 border border-slate-400"
+                                    class="keypad-btn font-bold py-3 rounded-xl text-[23.4px] transition-colors disabled:opacity-40 bg-slate-300 hover:bg-slate-400 text-slate-900 border border-slate-400"
                                 >
-                                    <div class="text-xs text-slate-300">Single</div>
-                                    <div class="font-black text-lg" x-text="shanghaiRoundIndex + 1"></div>
+                                    <div class="text-[15.6px] text-slate-300">Single</div>
+                                    <div class="font-black text-[23.4px]" x-text="shanghaiRoundIndex + 1"></div>
                                 </button>
                                 <!-- Double button -->
                                 <button
                                     @click="hitShanghai('double')"
                                     :disabled="isGameOver || players[activePlayer].shanghaiEliminated || (players[activePlayer].shanghaiTurnDarts || 0) >= 3"
-                                    class="keypad-btn font-bold py-3 rounded-xl text-lg transition-colors disabled:opacity-40 bg-slate-300 hover:bg-slate-400 text-slate-900 border border-slate-400"
+                                    class="keypad-btn font-bold py-3 rounded-xl text-[23.4px] transition-colors disabled:opacity-40 bg-slate-300 hover:bg-slate-400 text-slate-900 border border-slate-400"
                                 >
-                                    <div class="text-xs text-slate-300">Double</div>
-                                    <div class="font-black text-lg" x-text="'D' + (shanghaiRoundIndex + 1)"></div>
+                                    <div class="text-[15.6px] text-slate-300">Double</div>
+                                    <div class="font-black text-[23.4px]" x-text="'D' + (shanghaiRoundIndex + 1)"></div>
                                 </button>
                                 <!-- Triple button -->
                                 <button
                                     @click="hitShanghai('triple')"
                                     :disabled="isGameOver || players[activePlayer].shanghaiEliminated || (players[activePlayer].shanghaiTurnDarts || 0) >= 3"
-                                    class="keypad-btn font-bold py-3 rounded-xl text-lg transition-colors disabled:opacity-40 bg-slate-300 hover:bg-slate-400 text-slate-900 border border-slate-400"
+                                    class="keypad-btn font-bold py-3 rounded-xl text-[23.4px] transition-colors disabled:opacity-40 bg-slate-300 hover:bg-slate-400 text-slate-900 border border-slate-400"
                                 >
-                                    <div class="text-xs text-slate-300">Triple</div>
-                                    <div class="font-black text-lg" x-text="'T' + (shanghaiRoundIndex + 1)"></div>
+                                    <div class="text-[15.6px] text-slate-300">Triple</div>
+                                    <div class="font-black text-[23.4px]" x-text="'T' + (shanghaiRoundIndex + 1)"></div>
                                 </button>
                                 <!-- Miss button -->
                                 <button
                                     @click="hitShanghai('miss')"
                                     :disabled="isGameOver || players[activePlayer].shanghaiEliminated || (players[activePlayer].shanghaiTurnDarts || 0) >= 3"
-                                    class="keypad-btn bg-yellow-700/80 hover:bg-yellow-600 font-bold py-3 rounded-lg text-base transition-colors disabled:opacity-40"
+                                    class="keypad-btn bg-yellow-700/80 hover:bg-yellow-600 font-bold py-3 rounded-lg text-[20.8px] transition-colors disabled:opacity-40"
                                 >
-                                    <div class="text-xs text-yellow-200">Miss</div>
-                                    <div class="font-black text-lg text-yellow-100">0</div>
+                                    <div class="text-[15.6px] text-yellow-200">Miss</div>
+                                    <div class="font-black text-[23.4px] text-yellow-100">0</div>
                                 </button>
                             </div>
 
@@ -499,8 +499,8 @@
 
                             <!-- UNDO and ENTER buttons -->
                             <div class="grid grid-cols-2 gap-2.5">
-                                <button @click="undo()" class="bg-yellow-600 hover:bg-yellow-500 font-bold py-3 rounded-xl text-lg transition-colors shadow">UNDO</button>
-                                <button @click="submitShanghaiTurn()" :disabled="winMessage !== ''" class="bg-green-600 hover:bg-green-500 font-bold py-3 rounded-xl text-lg transition-colors shadow">ENTER</button>
+                                <button @click="undo()" class="bg-yellow-600 hover:bg-yellow-500 font-bold py-3 rounded-xl text-[23.4px] transition-colors shadow">UNDO</button>
+                                <button @click="submitShanghaiTurn()" :disabled="winMessage !== ''" class="bg-green-600 hover:bg-green-500 font-bold py-3 rounded-xl text-[23.4px] transition-colors shadow">ENTER</button>
                             </div>
                         </div>
                     </div>
@@ -535,29 +535,29 @@
                         <div class="max-w-[538px] mx-auto">
                             <!-- Keypad Grid (4 columns; scaled 20%) -->
                             <div class="grid grid-cols-4 gap-2 mb-2">
-                                <button @click="pressKey('1')" :disabled="isGameOver" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-lg font-bold py-2.5 rounded-lg disabled:opacity-40">1</button>
-                                <button @click="pressKey('2')" :disabled="isGameOver" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-lg font-bold py-2.5 rounded-lg disabled:opacity-40">2</button>
-                                <button @click="pressKey('3')" :disabled="isGameOver" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-lg font-bold py-2.5 rounded-lg disabled:opacity-40">3</button>
-                                <button @click="pressKey('back')" class="keypad-btn bg-red-900/60 hover:bg-red-800 text-xs font-bold py-2.5 rounded-lg text-red-300">Del</button>
+                                <button @click="pressKey('1')" :disabled="isGameOver" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-[23.4px] font-bold py-2.5 rounded-lg disabled:opacity-40">1</button>
+                                <button @click="pressKey('2')" :disabled="isGameOver" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-[23.4px] font-bold py-2.5 rounded-lg disabled:opacity-40">2</button>
+                                <button @click="pressKey('3')" :disabled="isGameOver" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-[23.4px] font-bold py-2.5 rounded-lg disabled:opacity-40">3</button>
+                                <button @click="pressKey('back')" class="keypad-btn bg-red-900/60 hover:bg-red-800 text-[15.6px] font-bold py-2.5 rounded-lg text-red-300">Del</button>
 
-                                <button @click="pressKey('4')" :disabled="isGameOver" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-lg font-bold py-2.5 rounded-lg disabled:opacity-40">4</button>
-                                <button @click="pressKey('5')" :disabled="isGameOver" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-lg font-bold py-2.5 rounded-lg disabled:opacity-40">5</button>
-                                <button @click="pressKey('6')" :disabled="isGameOver" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-lg font-bold py-2.5 rounded-lg disabled:opacity-40">6</button>
-                                <button @click="undo()" class="keypad-btn bg-yellow-600 hover:bg-yellow-500 text-xs font-bold py-2.5 rounded-lg text-yellow-50">UNDO</button>
+                                <button @click="pressKey('4')" :disabled="isGameOver" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-[23.4px] font-bold py-2.5 rounded-lg disabled:opacity-40">4</button>
+                                <button @click="pressKey('5')" :disabled="isGameOver" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-[23.4px] font-bold py-2.5 rounded-lg disabled:opacity-40">5</button>
+                                <button @click="pressKey('6')" :disabled="isGameOver" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-[23.4px] font-bold py-2.5 rounded-lg disabled:opacity-40">6</button>
+                                <button @click="undo()" class="keypad-btn bg-yellow-600 hover:bg-yellow-500 text-[15.6px] font-bold py-2.5 rounded-lg text-yellow-50">UNDO</button>
 
-                                <button @click="pressKey('7')" :disabled="isGameOver" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-lg font-bold py-2.5 rounded-lg disabled:opacity-40">7</button>
-                                <button @click="pressKey('8')" :disabled="isGameOver" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-lg font-bold py-2.5 rounded-lg disabled:opacity-40">8</button>
-                                <button @click="pressKey('9')" :disabled="isGameOver" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-lg font-bold py-2.5 rounded-lg disabled:opacity-40">9</button>
+                                <button @click="pressKey('7')" :disabled="isGameOver" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-[23.4px] font-bold py-2.5 rounded-lg disabled:opacity-40">7</button>
+                                <button @click="pressKey('8')" :disabled="isGameOver" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-[23.4px] font-bold py-2.5 rounded-lg disabled:opacity-40">8</button>
+                                <button @click="pressKey('9')" :disabled="isGameOver" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-[23.4px] font-bold py-2.5 rounded-lg disabled:opacity-40">9</button>
                                 <div class="keypad-btn"></div>
 
-                                <button @click="pressKey('+')" :disabled="isGameOver" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-lg font-bold py-2.5 rounded-lg text-yellow-300 disabled:opacity-40">+</button>
-                                <button @click="pressKey('0')" :disabled="isGameOver" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-lg font-bold py-2.5 rounded-lg disabled:opacity-40">0</button>
-                                <button @click="pressKey('*')" :disabled="isGameOver" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-lg font-bold py-2.5 rounded-lg text-yellow-300 disabled:opacity-40">×</button>
+                                <button @click="pressKey('+')" :disabled="isGameOver" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-[23.4px] font-bold py-2.5 rounded-lg text-yellow-300 disabled:opacity-40">+</button>
+                                <button @click="pressKey('0')" :disabled="isGameOver" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-[23.4px] font-bold py-2.5 rounded-lg disabled:opacity-40">0</button>
+                                <button @click="pressKey('*')" :disabled="isGameOver" class="keypad-btn bg-slate-700 hover:bg-slate-600 text-[23.4px] font-bold py-2.5 rounded-lg text-yellow-300 disabled:opacity-40">×</button>
                                 <div class="keypad-btn"></div>
 
-                                <button @click="setScore(0)" :disabled="isGameOver" class="keypad-btn bg-yellow-600/80 hover:bg-yellow-500 text-xs font-bold py-2.5 rounded-lg text-yellow-50 disabled:opacity-40">MISS</button>
-                                <button @click="bustTurn()" :disabled="isGameOver" class="keypad-btn bg-red-700/80 hover:bg-red-600 text-xs font-bold py-2.5 rounded-lg text-red-50 disabled:opacity-40">BUST</button>
-                                <button @click="submitX01()" :disabled="winMessage !== ''" class="keypad-btn bg-green-600 hover:bg-green-500 font-bold py-2.5 rounded-lg text-xs shadow transition-colors">ENTER</button>
+                                <button @click="setScore(0)" :disabled="isGameOver" class="keypad-btn bg-yellow-600/80 hover:bg-yellow-500 text-[15.6px] font-bold py-2.5 rounded-lg text-yellow-50 disabled:opacity-40">MISS</button>
+                                <button @click="bustTurn()" :disabled="isGameOver" class="keypad-btn bg-red-700/80 hover:bg-red-600 text-[15.6px] font-bold py-2.5 rounded-lg text-red-50 disabled:opacity-40">BUST</button>
+                                <button @click="submitX01()" :disabled="winMessage !== ''" class="keypad-btn bg-green-600 hover:bg-green-500 font-bold py-2.5 rounded-lg text-[15.6px] shadow transition-colors">ENTER</button>
                                 <div class="keypad-btn"></div>
 
                                 <!-- X01 Message Line - displays messages in row after ENTER, persists until another button is clicked -->
@@ -568,12 +568,12 @@
 
                                 <!-- Quick Common Score Preset Buttons (26, 41, 45, 60, 81, 100; scaled 20%) -->
                                 <div class="col-span-4 grid grid-cols-6 gap-1.5">
-                                    <button @click="setScore(26)" class="keypad-btn bg-amber-500/20 hover:bg-amber-500/30 text-[10px] font-bold py-2 rounded-lg text-amber-200 border border-amber-400/20">26</button>
-                                    <button @click="setScore(41)" class="keypad-btn bg-amber-500/20 hover:bg-amber-500/30 text-[10px] font-bold py-2 rounded-lg text-amber-200 border border-amber-400/20">41</button>
-                                    <button @click="setScore(45)" class="keypad-btn bg-amber-500/20 hover:bg-amber-500/30 text-[10px] font-bold py-2 rounded-lg text-amber-200 border border-amber-400/20">45</button>
-                                    <button @click="setScore(60)" class="keypad-btn bg-sky-500/20 hover:bg-sky-500/30 text-[10px] font-bold py-2 rounded-lg text-sky-200 border border-sky-400/20">60</button>
-                                    <button @click="setScore(81)" class="keypad-btn bg-sky-500/20 hover:bg-sky-500/30 text-[10px] font-bold py-2 rounded-lg text-sky-200 border border-sky-400/20">81</button>
-                                    <button @click="setScore(100)" class="keypad-btn bg-sky-500/20 hover:bg-sky-500/30 text-[10px] font-bold py-2 rounded-lg text-sky-200 border border-sky-400/20">100</button>
+                                    <button @click="setScore(26)" class="keypad-btn bg-amber-500/20 hover:bg-amber-500/30 text-[13px] font-bold py-2 rounded-lg text-amber-200 border border-amber-400/20">26</button>
+                                    <button @click="setScore(41)" class="keypad-btn bg-amber-500/20 hover:bg-amber-500/30 text-[13px] font-bold py-2 rounded-lg text-amber-200 border border-amber-400/20">41</button>
+                                    <button @click="setScore(45)" class="keypad-btn bg-amber-500/20 hover:bg-amber-500/30 text-[13px] font-bold py-2 rounded-lg text-amber-200 border border-amber-400/20">45</button>
+                                    <button @click="setScore(60)" class="keypad-btn bg-sky-500/20 hover:bg-sky-500/30 text-[13px] font-bold py-2 rounded-lg text-sky-200 border border-sky-400/20">60</button>
+                                    <button @click="setScore(81)" class="keypad-btn bg-sky-500/20 hover:bg-sky-500/30 text-[13px] font-bold py-2 rounded-lg text-sky-200 border border-sky-400/20">81</button>
+                                    <button @click="setScore(100)" class="keypad-btn bg-sky-500/20 hover:bg-sky-500/30 text-[13px] font-bold py-2 rounded-lg text-sky-200 border border-sky-400/20">100</button>
                                 </div>
                             </div>
                         </div>
